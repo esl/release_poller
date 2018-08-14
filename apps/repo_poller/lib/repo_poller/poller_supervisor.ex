@@ -3,6 +3,7 @@ defmodule RepoPoller.PollerSupervisor do
 
   alias RepoPoller.Poller
   alias RepoPoller.Domain.Repo
+  alias RepoPoller.DB
 
   def start_link(_) do
     Supervisor.start_link(__MODULE__, [], name: __MODULE__)
@@ -10,6 +11,9 @@ defmodule RepoPoller.PollerSupervisor do
 
   def init(_) do
     repos = Application.get_env(:repo_poller, :repos, [])
+
+    # let the DB be managed by the supervisor so it won't be restarted unless the supervisor is restarted too
+    DB.new()
 
     children =
       for {url, adapter, interval} <- repos do

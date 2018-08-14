@@ -27,6 +27,7 @@ defmodule RepoPoller.MixProject do
   defp deps do
     [
       {:tentacat, "~> 1.1.0"},
+      {:persistent_ets, github: "michalmuskala/persistent_ets"}, # use master because there aren't newer releases and master has an API function we need
       {:mock, "~> 0.3.2", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
