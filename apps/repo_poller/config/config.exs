@@ -20,7 +20,6 @@ use Mix.Config
 #
 #     config :logger, level: :info
 #
-config :repo_poller, github_client: RepoPoller.Repository.Github
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment

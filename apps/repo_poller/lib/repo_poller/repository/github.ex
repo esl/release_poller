@@ -19,7 +19,11 @@ defmodule RepoPoller.Repository.Github do
   #         {:ok, Tag.t()} | {:error, map()} | {:error, :rate_limit, pos_integer()}
   # multiple success clauses due to: https://github.com/edgurgel/tentacat/issues/144
   defp handle_tags_reponse({:ok, json_body, _httpoison_response}) do
-    {:ok, Enum.map(json_body, &Tag.new/1)}
+    {:ok, map_tags(json_body)}
+  end
+
+  defp handle_tags_reponse({200, json_body, _httpoison_response}) do
+    {:ok, map_tags(json_body)}
   end
 
   defp handle_tags_reponse({403, error_body, %{headers: headers}}) do
@@ -41,7 +45,7 @@ defmodule RepoPoller.Repository.Github do
 
   # multiple success clauses due to: https://github.com/edgurgel/tentacat/issues/144
   defp handle_tags_reponse(json_body) do
-    {:ok, Enum.map(json_body, &Tag.new/1)}
+    {:ok, map_tags(json_body)}
   end
 
   defp get_access_auth() do
@@ -54,5 +58,9 @@ defmodule RepoPoller.Repository.Github do
       nil -> Client.new()
       auth -> Client.new(auth)
     end
+  end
+
+  defp map_tags(json_body) do
+    Enum.map(json_body, &Tag.new/1)
   end
 end
