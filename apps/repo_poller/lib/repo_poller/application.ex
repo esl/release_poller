@@ -5,9 +5,11 @@ defmodule RepoPoller.Application do
 
   use Application
 
+  alias RepoPoller.PollerSupervisor
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
+      {PollerSupervisor, []}
       # Starts a worker by calling: RepoPoller.Worker.start_link(arg)
       # {RepoPoller.Worker, arg},
     ]
