@@ -3,6 +3,7 @@ defmodule RepoPoller.Poller do
   require Logger
 
   alias RepoPoller.Domain.Repo
+  alias RepoPoller.Repository.Service
 
   defmodule State do
     @enforce_keys [:repo]
@@ -30,17 +31,32 @@ defmodule RepoPoller.Poller do
     {:ok, state}
   end
 
-  def handle_info(:poll, %{repo: repo, interval: interval} = state) do
+  def handle_info(:poll, %{repo: repo, adapter: adapter, interval: interval} = state) do
     %{name: repo_name} = repo
 
     Logger.info("polling info for repo: #{repo_name}")
 
-    schedule_poll(interval)
+    case Service.get_tags(adapter, repo) do
+      {:ok, tags} ->
+        store_tags(tags)
+        schedule_poll(interval)
+      {:error, :rate_limit, retry} ->
+        Logger.warn("rate limit reached for repo: #{repo_name} retrying in #{retry} ms")
+        schedule_poll(retry)
+      {:error, reason} ->
+        Logger.error("error polling info for repo: #{repo_name} reason: #{inspect reason}")
+        schedule_poll(interval)
+    end
+
     {:noreply, state}
   end
 
   @spec schedule_poll(State.interval()) :: reference()
-  def schedule_poll(interval) do
+  defp schedule_poll(interval) do
     Process.send_after(self(), :poll, interval)
+  end
+
+  defp store_tags(_tags) do
+
   end
 end
