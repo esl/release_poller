@@ -21,3 +21,6 @@ erl_crash.dump
 
 # ETS DB persisted to file
 *.tab
+
+# Logs
+/log/
