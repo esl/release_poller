@@ -5,19 +5,23 @@ defmodule BugsBunny.Worker.RabbitConnection do
   require Logger
 
   alias __MODULE__
+  alias BugsBunny.ChannelSupervisor
+  alias BugsBunny.Worker.Channel, as: BunnyChannel
+
   @reconnect_interval 5_000
+  @default_channels 1000
 
   defmodule State do
     @type config :: keyword() | String.t()
 
     @enforce_keys [:config]
     @type t :: %__MODULE__{
-            conn_monitor: reference(),
             connection: Connection.t(),
+            channels: list(pid()),
             config: config()
           }
 
-    defstruct conn_monitor: nil, connection: nil, config: nil
+    defstruct connection: nil, channels: [], config: nil
   end
 
   # API
@@ -31,7 +35,13 @@ defmodule BugsBunny.Worker.RabbitConnection do
     GenServer.call(pid, :conn)
   end
 
+  @spec get_channel(pid()) :: any()
+  def get_channel(pid) do
+    GenServer.call(pid, :channel)
+  end
+
   def init(config) do
+    Process.flag(:trap_exit, true)
     schedule_connect(0)
     {:ok, %State{config: config}}
   end
@@ -45,17 +55,51 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:reply, {:ok, connection}, state}
   end
 
-  def handle_info(:connect, %State{config: config} = state) do
+  # TODO: improve better pooling of channels
+  # TODO: add overflow support
+  # TODO: maybe make the get_channel call async/sync with GenServer.reply/2
+  def handle_call(:channel, _from, %{connection: nil} = state) do
+    {:reply, {:error, :disconnected}, state}
+  end
+
+  def handle_call(:channel, _from, %{connection: nil, channels: []} = state) do
+    {:reply, {:error, :out_of_channels}, state}
+  end
+
+  def handle_call(:channel, _from, %{channels: [worker | _]} = state) do
+    result = BunnyChannel.get_channel(worker)
+    {:reply, result, state}
+  end
+
+  def handle_info(:connect, %{config: config} = state) do
     Connection.open(config)
     |> handle_rabbit_connect(state)
   end
 
-  def handle_info({:DOWN, ref, _, _, _}, %{conn_monitor: ref} = state) do
-    Logger.error("[Rabbit] connection lost, attempting to reconnect")
+  # connection crashed
+  def handle_info({:EXIT, pid, reason}, %{connection: pid} = state) do
+    Logger.error("[Rabbit] connection lost, attempting to reconnect reason: #{reason}")
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
     schedule_connect()
-    {:noreply, %State{state | conn_monitor: nil, connection: nil}}
+    {:noreply, %State{state | connection: nil}}
+  end
+
+  # connection crashed so channels are going to crash too
+  def handle_info({:EXIT, pid, reason}, %{connection: nil, channels: channels} = state) do
+    Logger.error("[Rabbit] connection lost, removing channel reason: #{reason}")
+    new_channels = List.delete(channels, pid)
+    {:noreply, %State{state | channels: new_channels}}
+  end
+
+  # connection didn't crashed but a channel did
+  def handle_info({:EXIT, pid, reason}, %{channels: channels, connection: conn} = state) do
+    Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{reason}")
+    # TODO: use exponential backoff to reconnect
+    # TODO: use circuit breaker to fail fast
+    new_channels = List.delete(channels, pid)
+    worker = start_channel_worker(conn)
+    {:noreply, %State{state | channels: [worker | new_channels], connection: nil}}
   end
 
   def terminate(_reason, %{connection: connection}) do
@@ -82,14 +126,30 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:noreply, state}
   end
 
-  defp handle_rabbit_connect({:ok, connection}, state) do
+  defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
     Logger.info("[Rabbit] connected")
+    num_channels = Keyword.get(config, :channels, @max_channels)
+    workers = for _ <- 1..num_channels, do: start_channel_worker(connection)
     %Connection{pid: pid} = connection
-    conn_monitor = Process.monitor(pid)
-    {:noreply, %State{state | conn_monitor: conn_monitor, connection: connection}}
+    Process.link(pid)
+    {:noreply, %State{state | connection: connection, channels: workers}}
   end
 
   defp schedule_connect(interval \\ @reconnect_interval) do
     Process.send_after(self(), :connect, interval)
+  end
+
+  # TODO: maybe start channels on demand as needed and store them in the state for re-use
+  @spec start_channel_worker(Connection.t()) :: pid()
+  defp start_channel_worker(connection) do
+    channel_worker_pid =
+      case ChannelSupervisor.start_channel(connection) do
+        {:ok, channel_worker_pid} -> channel_worker_pid
+        {:ok, channel_worker_pid, _info} -> channel_worker_pid
+        {:error, {:already_started, channel_worker_pid}} -> channel_worker_pid
+      end
+
+    true = Process.link(channel_worker_pid)
+    channel_worker_pid
   end
 end
