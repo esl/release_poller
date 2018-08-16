@@ -20,8 +20,10 @@ defmodule RepoPoller.Application do
       # {RepoPoller.Worker, arg},
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    # if for some reason the Supervisor of the RabbitMQ connection pool is terminated we should
+    # restart the Pooler workers and DB because we shouldn't store new tags without pushing them into
+    # a queue to be processed later, if we allow this, then we may not process some tags when the
+    # connection pool isn't available and there are new tags saved into the DB.
     opts = [strategy: :rest_for_one, name: RepoPoller.Supervisor]
     Supervisor.start_link(children, opts)
   end
