@@ -6,14 +6,20 @@ defmodule BugsBunny.PoolSupervisor do
   end
 
   def init(config) do
-    rabbitmq_config = Keyword.fetch!(config, :rabbitmq_config)
-    rabbitmq_conn_pool = Keyword.fetch!(config, :rabbitmq_conn_pool)
-    pool_id = Keyword.fetch!(rabbitmq_conn_pool, :pool_id)
+    children =
+      case Keyword.get(config, :rabbitmq_conn_pool) do
+        [] ->
+          []
 
-    children = [
-      :poolboy.child_spec(pool_id, rabbitmq_conn_pool, rabbitmq_config),
-      {BugsBunny.ChannelSupervisor, []}
-    ]
+        rabbitmq_conn_pool ->
+          rabbitmq_config = Keyword.get(config, :rabbitmq_config, [])
+          pool_id = Keyword.fetch!(rabbitmq_conn_pool, :pool_id)
+
+          children = [
+            :poolboy.child_spec(pool_id, rabbitmq_conn_pool, rabbitmq_config),
+            {BugsBunny.ChannelSupervisor, []}
+          ]
+      end
 
     opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
