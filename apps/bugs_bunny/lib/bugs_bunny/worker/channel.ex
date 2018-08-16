@@ -1,7 +1,7 @@
 defmodule BugsBunny.Worker.Channel do
   require Logger
 
-  use GenServer
+  use GenServer, restart: :temporary
   use AMQP
 
   @reconnect_interval 5_000
