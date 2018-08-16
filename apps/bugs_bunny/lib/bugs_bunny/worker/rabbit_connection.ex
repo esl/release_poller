@@ -30,27 +30,34 @@ defmodule BugsBunny.Worker.RabbitConnection do
     GenServer.start_link(__MODULE__, config, [])
   end
 
-  @spec get_connection(pid()) :: any()
+  @spec get_connection(pid()) :: {:ok, Connection.t()} | {:error, :disconnected}
   def get_connection(pid) do
     GenServer.call(pid, :conn)
   end
 
-  @spec get_channel(pid()) :: any()
+  @spec get_channel(pid()) ::
+          {:ok, Channel.t()}
+          | {:error, :no_channel}
+          | {:error, :disconnected}
+          | {:error, :out_of_channels}
   def get_channel(pid) do
     GenServer.call(pid, :channel)
   end
 
+  # CALLBACKS
+  @impl true
   def init(config) do
     Process.flag(:trap_exit, true)
     schedule_connect(0)
     {:ok, %State{config: config}}
   end
 
-  # CALLBACKS
+  @impl true
   def handle_call(:conn, _from, %{connection: nil} = state) do
     {:reply, {:error, :disconnected}, state}
   end
 
+  @impl true
   def handle_call(:conn, _from, %{connection: connection} = state) do
     {:reply, {:ok, connection}, state}
   end
@@ -58,25 +65,30 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # TODO: improve better pooling of channels
   # TODO: add overflow support
   # TODO: maybe make the get_channel call async/sync with GenServer.reply/2
+  @impl true
   def handle_call(:channel, _from, %{connection: nil} = state) do
     {:reply, {:error, :disconnected}, state}
   end
 
+  @impl true
   def handle_call(:channel, _from, %{connection: nil, channels: []} = state) do
     {:reply, {:error, :out_of_channels}, state}
   end
 
+  @impl true
   def handle_call(:channel, _from, %{channels: [worker | _]} = state) do
     result = BunnyChannel.get_channel(worker)
     {:reply, result, state}
   end
 
+  @impl true
   def handle_info(:connect, %{config: config} = state) do
     Connection.open(config)
     |> handle_rabbit_connect(state)
   end
 
   # connection crashed
+  @impl true
   def handle_info({:EXIT, pid, reason}, %{connection: pid} = state) do
     Logger.error("[Rabbit] connection lost, attempting to reconnect reason: #{reason}")
     # TODO: use exponential backoff to reconnect
@@ -86,6 +98,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   # connection crashed so channels are going to crash too
+  @impl true
   def handle_info({:EXIT, pid, reason}, %{connection: nil, channels: channels} = state) do
     Logger.error("[Rabbit] connection lost, removing channel reason: #{reason}")
     new_channels = List.delete(channels, pid)
@@ -93,6 +106,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   # connection didn't crashed but a channel did
+  @impl true
   def handle_info({:EXIT, pid, reason}, %{channels: channels, connection: conn} = state) do
     Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{reason}")
     # TODO: use exponential backoff to reconnect
@@ -102,6 +116,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:noreply, %State{state | channels: [worker | new_channels], connection: nil}}
   end
 
+  @impl true
   def terminate(_reason, %{connection: connection}) do
     try do
       Connection.close(connection)

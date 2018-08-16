@@ -25,12 +25,14 @@ defmodule RepoPoller.Poller do
   end
 
   @spec init({Repo.t(), State.adapter(), State.interval()}) :: {:ok, State.t()}
+  @impl true
   def init({repo, adapter, interval}) do
     state = %State{repo: repo, adapter: adapter, interval: interval}
     schedule_poll(0)
     {:ok, state}
   end
 
+  @impl true
   def handle_info(:poll, %{repo: repo, adapter: adapter, interval: interval} = state) do
     %{name: repo_name} = repo
 

@@ -18,6 +18,7 @@ defmodule BugsBunny.Worker.Channel do
     GenServer.start_link(__MODULE__, conn, [])
   end
 
+  @spec get_channel(pid()) :: {:ok, Channel.t()} | {:error, :no_channel}
   def get_channel(pid) do
     GenServer.call(pid, :channel)
   end
@@ -39,7 +40,7 @@ defmodule BugsBunny.Worker.Channel do
 
   @impl true
   def handle_call(:channel, _from, %{channel: nil} = state) do
-    {:reply, {:error, :disconnected}, state}
+    {:reply, {:error, :no_channel}, state}
   end
 
   @impl true
