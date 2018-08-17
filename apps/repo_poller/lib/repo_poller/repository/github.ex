@@ -51,8 +51,7 @@ defmodule RepoPoller.Repository.Github do
   end
 
   defp get_access_auth() do
-    # Application.get_env(:repo_poller, :github_auth)
-    nil
+    Application.get_env(:repo_poller, :github_auth)
   end
 
   @spec new() :: Tentacat.Client.t()

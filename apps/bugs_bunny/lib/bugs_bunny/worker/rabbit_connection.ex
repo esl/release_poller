@@ -1,11 +1,10 @@
 defmodule BugsBunny.Worker.RabbitConnection do
   use GenServer
-  use AMQP
 
   require Logger
 
   alias __MODULE__
-  alias BugsBunny.ChannelSupervisor
+  alias BugsBunny.RabbitMQ
 
   @reconnect_interval 5_000
   @default_channels 1000
@@ -15,7 +14,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
     @enforce_keys [:config]
     @type t :: %__MODULE__{
-            connection: Connection.t(),
+            connection: AMQP.Connection.t(),
             channels: list(pid()),
             monitors: [],
             config: config()
@@ -30,20 +29,20 @@ defmodule BugsBunny.Worker.RabbitConnection do
     GenServer.start_link(__MODULE__, config, [])
   end
 
-  @spec get_connection(pid()) :: {:ok, Connection.t()} | {:error, :disconnected}
+  @spec get_connection(pid()) :: {:ok, AMQP.Connection.t()} | {:error, :disconnected}
   def get_connection(pid) do
     GenServer.call(pid, :conn)
   end
 
   @spec checkout_channel(pid()) ::
-          {:ok, Channel.t()}
+          {:ok, AMQP.Channel.t()}
           | {:error, :disconnected}
           | {:error, :out_of_channels}
   def checkout_channel(pid) do
     GenServer.call(pid, :checkout_channel)
   end
 
-  @spec checkin_channel(pid(), Channel.t()) :: :ok
+  @spec checkin_channel(pid(), AMQP.Channel.t()) :: :ok
   def checkin_channel(pid, channel) do
     GenServer.cast(pid, {:checkin_channel, channel})
   end
@@ -111,7 +110,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   @impl true
   def handle_info(:connect, %{config: config} = state) do
-    Connection.open(config)
+    RabbitMQ.open_connection(config)
     |> handle_rabbit_connect(state)
   end
 
@@ -146,7 +145,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   # client holding a channel fails, then we need to take its channel back
   @impl true
-  def handle_info({:DOWN, down_ref, :process, _, _}, %{channels: channels, monitors: monitors} = state) do
+  def handle_info(
+        {:DOWN, down_ref, :process, _, _},
+        %{channels: channels, monitors: monitors} = state
+      ) do
     monitors
     |> Enum.find(fn {ref, _chan} ->
       down_ref == ref
@@ -164,7 +166,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   @impl true
   def terminate(_reason, %{connection: connection}) do
     try do
-      Connection.close(connection)
+      RabbitMQ.close_connection(connection)
     catch
       _, _ -> :ok
     end
@@ -177,7 +179,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # INTERNALS
   # TODO: FIX spec, don't know why is failing the suggested success typing is the same with some enforcing keys
   # @spec handle_rabbit_connect(connection_result, State.t()) :: {:noreply, State.t()}
-  #       when connection_result: {:error, any()} | {:ok, Connection.t()}
+  #       when connection_result: {:error, any()} | {:ok, AMQP.Connection.t()}
   defp handle_rabbit_connect({:error, reason}, state) do
     Logger.error("[Rabbit] error reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
@@ -188,7 +190,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
     Logger.info("[Rabbit] connected")
-    %Connection{pid: pid} = connection
+    %{pid: pid} = connection
     Process.link(pid)
 
     num_channels = Keyword.get(config, :channels, @default_channels)
@@ -207,10 +209,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   # TODO: maybe start channels on demand as needed and store them in the state for re-use
-  @spec start_channel(Connection.t()) :: {:ok, Channel.t()} | {:error, any()}
+  @spec start_channel(AMQP.Connection.t()) :: {:ok, AMQP.Channel.t()} | {:error, any()}
   defp start_channel(connection) do
-    case Channel.open(connection) do
-      {:ok, %Channel{pid: pid}} = result ->
+    case RabbitMQ.open_channel(connection) do
+      {:ok, %{pid: pid}} = result ->
         Logger.info("[Rabbit] channel connected")
         true = Process.link(pid)
         result
