@@ -11,7 +11,6 @@ defmodule RepoPoller.Integration.GithubTest do
   test "fetch all tags from repo" do
     Repo.new("https://github.com/elixir-lang/elixir")
     |> Github.get_tags()
-    |> IO.inspect(label: ">>>>>>>>>>>>>>>>>>")
     |> case do
       {:ok, tags} ->
         refute Enum.empty?(tags)
