@@ -16,8 +16,6 @@ defmodule RepoPoller.Application do
       {BugsBunny.PoolSupervisor,
        [rabbitmq_config: rabbitmq_config, rabbitmq_conn_pool: rabbitmq_conn_pool]},
       {PollerSupervisor, []},
-      # Starts a worker by calling: RepoPoller.Worker.start_link(arg)
-      # {RepoPoller.Worker, arg},
     ]
 
     # if for some reason the Supervisor of the RabbitMQ connection pool is terminated we should

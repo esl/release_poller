@@ -2,6 +2,8 @@ defmodule RepoPoller.Domain.Tag do
   alias RepoPoller.Helpers.Map, as: HelperMap
   alias RepoPoller.Domain.Tag
 
+  @derive [Poison.Encoder]
+
   @enforce_keys [:name]
   @type t :: %__MODULE__{
           name: Version.t(),
@@ -21,10 +23,8 @@ defmodule RepoPoller.Domain.Tag do
     struct!(__MODULE__, new_attrs)
   end
 
-  @spec new_tags?(list(Tag.t()), list(Tag.t())) :: boolean()
-  def new_tags?(old_tags, new_tags) do
-    (new_tags -- old_tags)
-    |> Enum.empty?()
-    |> Kernel.not()
+  @spec new_tags(list(Tag.t()), list(Tag.t())) :: list(Tag.t())
+  def new_tags(old_tags, new_tags) do
+    new_tags -- old_tags
   end
 end

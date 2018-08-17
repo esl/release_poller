@@ -9,12 +9,13 @@ config :repo_poller, :repos, [
 config :repo_poller, :rabbitmq_config,
   host: "192.168.1.10",
   port: 5672,
-  channels: 10
+  channels: 10,
+  queue: "new_releases.queue",
+  exchange: ""
 
 config :repo_poller, :rabbitmq_conn_pool,
   pool_id: :connection_pool,
   name: {:local, :connection_pool},
   worker_module: BugsBunny.Worker.RabbitConnection,
   size: 2,
-  strategy: :fifo,
   max_overflow: 0
