@@ -28,12 +28,14 @@ defmodule RepoPoller.Repository.Github do
 
   defp handle_tags_reponse({403, error_body, %{headers: headers}}) do
     {_, rate_limit_remaining} = List.keyfind(headers, "X-RateLimit-Remaining", 0)
+    rate_limit_remaining = String.to_integer(rate_limit_remaining, 10)
 
     if rate_limit_remaining > 0 do
       # error different than a rate-limit error
       {:error, error_body}
     else
       {_, rate_limit_reset} = List.keyfind(headers, "X-RateLimit-Reset", 0)
+      rate_limit_reset = String.to_integer(rate_limit_reset, 10)
       rate_limit_reset_dt = DateTime.from_unix!(rate_limit_reset)
       now = DateTime.utc_now()
       retry_in_seconds = DateTime.diff(rate_limit_reset_dt, now)
@@ -49,7 +51,8 @@ defmodule RepoPoller.Repository.Github do
   end
 
   defp get_access_auth() do
-    Application.get_env(:repo_poller, :github_auth)
+    # Application.get_env(:repo_poller, :github_auth)
+    nil
   end
 
   @spec new() :: Tentacat.Client.t()
