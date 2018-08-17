@@ -6,7 +6,6 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   alias __MODULE__
   alias BugsBunny.ChannelSupervisor
-  alias BugsBunny.Worker.Channel, as: BunnyChannel
 
   @reconnect_interval 5_000
   @default_channels 1000
@@ -18,10 +17,11 @@ defmodule BugsBunny.Worker.RabbitConnection do
     @type t :: %__MODULE__{
             connection: Connection.t(),
             channels: list(pid()),
+            monitors: [],
             config: config()
           }
 
-    defstruct connection: nil, channels: [], config: nil
+    defstruct connection: nil, channels: [], config: nil, monitors: []
   end
 
   # API
@@ -35,13 +35,17 @@ defmodule BugsBunny.Worker.RabbitConnection do
     GenServer.call(pid, :conn)
   end
 
-  @spec get_channel(pid()) ::
+  @spec checkout_channel(pid()) ::
           {:ok, Channel.t()}
-          | {:error, :no_channel}
           | {:error, :disconnected}
           | {:error, :out_of_channels}
-  def get_channel(pid) do
-    GenServer.call(pid, :channel)
+  def checkout_channel(pid) do
+    GenServer.call(pid, :checkout_channel)
+  end
+
+  @spec checkin_channel(pid(), Channel.t()) :: :ok
+  def checkin_channel(pid, channel) do
+    GenServer.cast(pid, {:checkin_channel, channel})
   end
 
   # CALLBACKS
@@ -66,19 +70,43 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # TODO: add overflow support
   # TODO: maybe make the get_channel call async/sync with GenServer.reply/2
   @impl true
-  def handle_call(:channel, _from, %{connection: nil} = state) do
+  def handle_call(:checkout_channel, _from, %{connection: nil} = state) do
     {:reply, {:error, :disconnected}, state}
   end
 
   @impl true
-  def handle_call(:channel, _from, %{connection: nil, channels: []} = state) do
+  def handle_call(:checkout_channel, _from, %{channels: []} = state) do
     {:reply, {:error, :out_of_channels}, state}
   end
 
   @impl true
-  def handle_call(:channel, _from, %{channels: [worker | _]} = state) do
-    result = BunnyChannel.get_channel(worker)
-    {:reply, result, state}
+  def handle_call(
+        :checkout_channel,
+        {from_pid, _ref} = from,
+        %{channels: [channel | rest], monitors: monitors} = state
+      ) do
+    monitor_ref = Process.monitor(from_pid)
+
+    {:reply, {:ok, channel},
+     %State{state | channels: rest, monitors: [{monitor_ref, channel} | monitors]}}
+  end
+
+  @impl true
+  def handle_cast({:checkin_channel, channel}, %{channels: channels, monitors: monitors} = state) do
+    monitors
+    |> Enum.find(fn {_ref, chan} ->
+      channel == chan
+    end)
+    |> case do
+      # checkin unmonitored channel :thinking_face:
+      nil ->
+        {:noreply, state}
+
+      {ref, _} = returned ->
+        true = Process.demonitor(ref)
+        new_monitors = List.delete(monitors, returned)
+        {:noreply, %State{state | channels: [channel | channels], monitors: new_monitors}}
+    end
   end
 
   @impl true
@@ -112,8 +140,25 @@ defmodule BugsBunny.Worker.RabbitConnection do
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
     new_channels = List.delete(channels, pid)
-    worker = start_channel_worker(conn)
+    worker = start_channel(conn)
     {:noreply, %State{state | channels: [worker | new_channels], connection: nil}}
+  end
+
+  # client holding a channel fails, then we need to take its channel back
+  @impl true
+  def handle_info({:DOWN, down_ref, :process, _, _}, %{channels: channels, monitors: monitors} = state) do
+    monitors
+    |> Enum.find(fn {ref, _chan} ->
+      down_ref == ref
+    end)
+    |> case do
+      nil ->
+        {:noreply, state}
+
+      {_ref, channel} = returned ->
+        new_monitors = List.delete(monitors, returned)
+        {:noreply, %State{state | channels: [channel | channels], monitors: new_monitors}}
+    end
   end
 
   @impl true
@@ -131,7 +176,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   # INTERNALS
   # TODO: FIX spec, don't know why is failing the suggested success typing is the same with some enforcing keys
-  # @spec handle_rabbit_connect(connection_result, State.t()) :: {:no_reply, State.t()}
+  # @spec handle_rabbit_connect(connection_result, State.t()) :: {:noreply, State.t()}
   #       when connection_result: {:error, any()} | {:ok, Connection.t()}
   defp handle_rabbit_connect({:error, reason}, state) do
     Logger.error("[Rabbit] error reason: #{inspect(reason)}")
@@ -143,11 +188,18 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
     Logger.info("[Rabbit] connected")
-    num_channels = Keyword.get(config, :channels, @max_channels)
-    workers = for _ <- 1..num_channels, do: start_channel_worker(connection)
     %Connection{pid: pid} = connection
     Process.link(pid)
-    {:noreply, %State{state | connection: connection, channels: workers}}
+
+    num_channels = Keyword.get(config, :channels, @default_channels)
+
+    channels =
+      for _ <- 1..num_channels do
+        {:ok, channel} = start_channel(connection)
+        channel
+      end
+
+    {:noreply, %State{state | connection: connection, channels: channels}}
   end
 
   defp schedule_connect(interval \\ @reconnect_interval) do
@@ -155,16 +207,17 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   # TODO: maybe start channels on demand as needed and store them in the state for re-use
-  @spec start_channel_worker(Connection.t()) :: pid()
-  defp start_channel_worker(connection) do
-    channel_worker_pid =
-      case ChannelSupervisor.start_channel(connection) do
-        {:ok, channel_worker_pid} -> channel_worker_pid
-        {:ok, channel_worker_pid, _info} -> channel_worker_pid
-        {:error, {:already_started, channel_worker_pid}} -> channel_worker_pid
-      end
+  @spec start_channel(Connection.t()) :: {:ok, Channel.t()} | {:error, any()}
+  defp start_channel(connection) do
+    case Channel.open(connection) do
+      {:ok, %Channel{pid: pid}} = result ->
+        Logger.info("[Rabbit] channel connected")
+        true = Process.link(pid)
+        result
 
-    true = Process.link(channel_worker_pid)
-    channel_worker_pid
+      {:error, reason} = error ->
+        Logger.error("[Rabbit] error starting channel reason: #{inspect(reason)}")
+        error
+    end
   end
 end
