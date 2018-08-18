@@ -4,7 +4,6 @@ defmodule BugsBunny.Worker.RabbitConnection do
   require Logger
 
   alias __MODULE__
-  alias BugsBunny.RabbitMQ
 
   @reconnect_interval 5_000
   @default_channels 1000
@@ -51,7 +50,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   @impl true
   def init(config) do
     Process.flag(:trap_exit, true)
-    schedule_connect(0)
+    send(self(), :connect)
     {:ok, %State{config: config}}
   end
 
@@ -109,8 +108,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   @impl true
-  def handle_info(:connect, %{config: config} = state) do
-    RabbitMQ.open_connection(config)
+  def handle_info(:connect, %{config: config, config: config} = state) do
+    get_client(config).open_connection(config)
     |> handle_rabbit_connect(state)
   end
 
@@ -134,16 +133,21 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   # connection didn't crashed but a channel did
   @impl true
-  def handle_info({:EXIT, pid, reason}, %{channels: channels, connection: conn} = state) do
+  def handle_info(
+        {:EXIT, pid, reason},
+        %{channels: channels, connection: conn, config: config} = state
+      ) do
     Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{reason}")
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
     new_channels = List.delete(channels, pid)
-    worker = start_channel(conn)
+    worker =
+      get_client(config)
+      |> start_channel(conn)
     {:noreply, %State{state | channels: [worker | new_channels], connection: nil}}
   end
 
-  # client holding a channel fails, then we need to take its channel back
+  # if client holding a channel fails, then we need to take its channel back
   @impl true
   def handle_info(
         {:DOWN, down_ref, :process, _, _},
@@ -164,9 +168,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   @impl true
-  def terminate(_reason, %{connection: connection}) do
+  def terminate(_reason, %{connection: connection, config: config}) do
     try do
-      RabbitMQ.close_connection(connection)
+      get_client(config).close_connection(connection)
     catch
       _, _ -> :ok
     end
@@ -197,7 +201,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
     channels =
       for _ <- 1..num_channels do
-        {:ok, channel} = start_channel(connection)
+        {:ok, channel} =
+          get_client(config)
+          |> start_channel(connection)
         channel
       end
 
@@ -209,9 +215,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   # TODO: maybe start channels on demand as needed and store them in the state for re-use
-  @spec start_channel(AMQP.Connection.t()) :: {:ok, AMQP.Channel.t()} | {:error, any()}
-  defp start_channel(connection) do
-    case RabbitMQ.open_channel(connection) do
+  @spec start_channel(module(), AMQP.Connection.t()) :: {:ok, AMQP.Channel.t()} | {:error, any()}
+  defp start_channel(client, connection) do
+    case client.open_channel(connection) do
       {:ok, %{pid: pid}} = result ->
         Logger.info("[Rabbit] channel connected")
         true = Process.link(pid)
@@ -221,5 +227,11 @@ defmodule BugsBunny.Worker.RabbitConnection do
         Logger.error("[Rabbit] error starting channel reason: #{inspect(reason)}")
         error
     end
+  end
+
+  # RabbitMQ Client can be injected for testing purposes (maybe in the future we can inject a test
+  # double so we don't depend on RabbitMQ to be configured in acceptance/unit tests)
+  defp get_client(config) do
+    Keyword.get(config, :client, BugsBunny.RabbitMQ)
   end
 end

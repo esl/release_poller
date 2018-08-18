@@ -2,6 +2,7 @@ defmodule BugsBunny.RabbitMQ do
   @behaviour BugsBunny.Clients.Adapter
   use AMQP
 
+  @impl true
   def publish(channel, exchange, routing_key, payload, options \\ []) do
     Basic.publish(channel, exchange, routing_key, payload, options)
   end

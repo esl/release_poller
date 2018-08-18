@@ -5,6 +5,10 @@ defmodule BugsBunny.PoolSupervisor do
     Supervisor.start_link(__MODULE__, config, name: __MODULE__)
   end
 
+  def start_link(config, name) do
+    Supervisor.start_link(__MODULE__, config, name: name)
+  end
+
   def init(config) do
     children =
       case Keyword.get(config, :rabbitmq_conn_pool) do
@@ -15,7 +19,7 @@ defmodule BugsBunny.PoolSupervisor do
           rabbitmq_config = Keyword.get(config, :rabbitmq_config, [])
           pool_id = Keyword.fetch!(rabbitmq_conn_pool, :pool_id)
 
-          children = [:poolboy.child_spec(pool_id, rabbitmq_conn_pool, rabbitmq_config)]
+          [:poolboy.child_spec(pool_id, rabbitmq_conn_pool, rabbitmq_config)]
       end
 
     opts = [strategy: :one_for_one]
