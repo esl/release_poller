@@ -28,6 +28,11 @@ defmodule RepoPoller.PollerTest do
     end
 
     @impl true
+    def consume(_channel, _queue, _consumer_pid \\ nil, _options \\ []) do
+      {:ok, ""}
+    end
+
+    @impl true
     def open_connection(_config) do
       # Connection.open(config)
       {:ok, %Connection{pid: self()}}
