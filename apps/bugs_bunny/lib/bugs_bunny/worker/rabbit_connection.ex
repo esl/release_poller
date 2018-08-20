@@ -3,10 +3,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   require Logger
 
-  alias __MODULE__
-
-  @reconnect_interval 5_000
-  @default_channels 1000
+  @reconnect_interval 1_000
+  @default_channels 1_000
 
   defmodule State do
     @type config :: keyword() | String.t()
@@ -46,6 +44,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
     GenServer.cast(pid, {:checkin_channel, channel})
   end
 
+  def state(pid) do
+    GenServer.call(pid, :state)
+  end
+
   # CALLBACKS
   @impl true
   def init(config) do
@@ -66,7 +68,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   # TODO: improve better pooling of channels
   # TODO: add overflow support
-  # TODO: maybe make the get_channel call async/sync with GenServer.reply/2
+  # TODO: maybe make the checkout_channel call async/sync with GenServer.reply/2
   @impl true
   def handle_call(:checkout_channel, _from, %{connection: nil} = state) do
     {:reply, {:error, :disconnected}, state}
@@ -80,13 +82,18 @@ defmodule BugsBunny.Worker.RabbitConnection do
   @impl true
   def handle_call(
         :checkout_channel,
-        {from_pid, _ref} = from,
+        {from_pid, _ref},
         %{channels: [channel | rest], monitors: monitors} = state
       ) do
     monitor_ref = Process.monitor(from_pid)
 
     {:reply, {:ok, channel},
      %State{state | channels: rest, monitors: [{monitor_ref, channel} | monitors]}}
+  end
+
+  @impl true
+  def handle_call(:state, _from, state) do
+    {:reply, state, state}
   end
 
   @impl true
@@ -115,18 +122,18 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   # connection crashed
   @impl true
-  def handle_info({:EXIT, pid, reason}, %{connection: pid} = state) do
-    Logger.error("[Rabbit] connection lost, attempting to reconnect reason: #{reason}")
+  def handle_info({:EXIT, pid, reason}, %{connection: %{pid: pid}, config: config} = state) do
+    Logger.error("[Rabbit] connection lost, attempting to reconnect reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
-    schedule_connect()
+    schedule_connect(config)
     {:noreply, %State{state | connection: nil}}
   end
 
   # connection crashed so channels are going to crash too
   @impl true
   def handle_info({:EXIT, pid, reason}, %{connection: nil, channels: channels} = state) do
-    Logger.error("[Rabbit] connection lost, removing channel reason: #{reason}")
+    Logger.error("[Rabbit] connection lost, removing channel reason: #{inspect(reason)}")
     new_channels = List.delete(channels, pid)
     {:noreply, %State{state | channels: new_channels}}
   end
@@ -135,16 +142,32 @@ defmodule BugsBunny.Worker.RabbitConnection do
   @impl true
   def handle_info(
         {:EXIT, pid, reason},
-        %{channels: channels, connection: conn, config: config} = state
+        %{channels: channels, connection: conn, config: config, monitors: monitors} = state
       ) do
-    Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{reason}")
+    Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
     new_channels = List.delete(channels, pid)
+
     worker =
       get_client(config)
       |> start_channel(conn)
-    {:noreply, %State{state | channels: [worker | new_channels], connection: nil}}
+
+    monitors
+    |> Enum.find(fn {_ref, %{pid: chan_id}} ->
+      pid == chan_id
+    end)
+    |> case do
+      # checkin unmonitored channel :thinking_face:
+      nil ->
+        {:noreply, %State{state | channels: [worker | new_channels]}}
+
+      {ref, _} = returned ->
+        true = Process.demonitor(ref)
+        new_monitors = List.delete(monitors, returned)
+
+        {:noreply, %State{state | channels: [worker | new_channels], monitors: new_monitors}}
+    end
   end
 
   # if client holding a channel fails, then we need to take its channel back
@@ -182,13 +205,15 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   # INTERNALS
   # TODO: FIX spec, don't know why is failing the suggested success typing is the same with some enforcing keys
+  # TODO: add exponential backoff for reconnects
+  # TODO: stop the worker when we couldn't reconnect several times
   # @spec handle_rabbit_connect(connection_result, State.t()) :: {:noreply, State.t()}
   #       when connection_result: {:error, any()} | {:ok, AMQP.Connection.t()}
-  defp handle_rabbit_connect({:error, reason}, state) do
+  defp handle_rabbit_connect({:error, reason}, %{config: config} = state) do
     Logger.error("[Rabbit] error reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
-    schedule_connect()
+    schedule_connect(config)
     {:noreply, state}
   end
 
@@ -204,13 +229,15 @@ defmodule BugsBunny.Worker.RabbitConnection do
         {:ok, channel} =
           get_client(config)
           |> start_channel(connection)
+
         channel
       end
 
     {:noreply, %State{state | connection: connection, channels: channels}}
   end
 
-  defp schedule_connect(interval \\ @reconnect_interval) do
+  defp schedule_connect(config) do
+    interval = get_reconnect_interval(config)
     Process.send_after(self(), :connect, interval)
   end
 
@@ -233,5 +260,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # double so we don't depend on RabbitMQ to be configured in acceptance/unit tests)
   defp get_client(config) do
     Keyword.get(config, :client, BugsBunny.RabbitMQ)
+  end
+
+  defp get_reconnect_interval(config) do
+    Keyword.get(config, :reconnect_interval, @reconnect_interval)
   end
 end

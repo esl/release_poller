@@ -8,6 +8,11 @@ defmodule BugsBunny.RabbitMQ do
   end
 
   @impl true
+  def consume(%Channel{} = channel, queue, consumer_pid \\ nil, options \\ []) do
+    Basic.consume(channel, queue, consumer_pid, options)
+  end
+
+  @impl true
   def open_connection(config) do
     Connection.open(config)
   end

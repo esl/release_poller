@@ -4,4 +4,6 @@ defmodule BugsBunny.Clients.Adapter do
   @callback close_connection(AMQP.Connection.t()) :: :ok | {:error, any}
   @callback publish(AMQP.Channel.t(), String.t(), String.t(), String.t(), keyword) ::
               :ok | AMQP.Basic.error()
+  @callback consume(AMQP.Channel.t(), String.t(), pid() | nil, keyword) ::
+              {:ok, String.t()} | AMQP.Basic.error()
 end
