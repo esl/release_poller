@@ -4,11 +4,22 @@ defmodule BugsBunny do
 
   @type f :: (AMQP.Channel.t() | {:error, :disconected | :out_of_channels} -> any())
 
+  @doc """
+  Gets a connection from a connection worker so any client can exec commands
+  manually
+  """
   @spec get_connection(atom()) :: {:ok, AMQP.Connection.t()} | {:error, :disconnected}
   def get_connection(pool_id) do
     :poolboy.transaction(pool_id, &Conn.get_connection/1)
   end
 
+  @doc """
+  Executes function f in the context of a channel, takes a connection worker
+  out of the pool, put that connection worker back into the pool so any
+  other concurrent client can have access to it, checks out a channel out of
+  the worker's channel pool, executes the function with the result of the
+  checkout and finally puts the channel back into the worker's pool.
+  """
   @spec with_channel(atom(), f()) :: :ok | {:error, :out_of_retries}
   def with_channel(pool_id, fun) do
     conn_worker = :poolboy.checkout(pool_id)

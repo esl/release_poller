@@ -13,14 +13,17 @@ defmodule BugsBunny.Worker.RabbitConnection do
     @type t :: %__MODULE__{
             connection: AMQP.Connection.t(),
             channels: list(pid()),
-            monitors: [],
+            monitors: [], # TODO: use an ets table to persist the monitors
             config: config()
           }
 
     defstruct connection: nil, channels: [], config: nil, monitors: []
   end
 
-  # API
+  ##############
+  # Client API #
+  ##############
+
   @spec start_link(State.config()) :: GenServer.on_start()
   def start_link(config) do
     GenServer.start_link(__MODULE__, config, [])
@@ -44,11 +47,23 @@ defmodule BugsBunny.Worker.RabbitConnection do
     GenServer.cast(pid, {:checkin_channel, channel})
   end
 
+  @doc false
   def state(pid) do
     GenServer.call(pid, :state)
   end
 
-  # CALLBACKS
+  ####################
+  # Server Callbacks #
+  ####################
+
+  @doc """
+  Traps exits so all the linked connection and multiplexed channels can be
+  restarted by this worker.
+  Triggers an async connection but making sure future calls need to wait
+  for the connection to happen before them.
+
+    * `config` is the rabbitmq config settings
+  """
   @impl true
   def init(config) do
     Process.flag(:trap_exit, true)
@@ -203,7 +218,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
     :ok
   end
 
-  # INTERNALS
+  #############
+  # Internals #
+  #############
+
   # TODO: FIX spec, don't know why is failing the suggested success typing is the same with some enforcing keys
   # TODO: add exponential backoff for reconnects
   # TODO: stop the worker when we couldn't reconnect several times
@@ -241,6 +259,12 @@ defmodule BugsBunny.Worker.RabbitConnection do
     Process.send_after(self(), :connect, interval)
   end
 
+  @doc """
+  Opens a channel using the specified client, each channel is backed by a
+  GenServer process, so we need to link the worker to all those processes
+  to be able to restart them when closed or when they crash e.g by a
+  connection error
+  """
   # TODO: maybe start channels on demand as needed and store them in the state for re-use
   @spec start_channel(module(), AMQP.Connection.t()) :: {:ok, AMQP.Channel.t()} | {:error, any()}
   defp start_channel(client, connection) do

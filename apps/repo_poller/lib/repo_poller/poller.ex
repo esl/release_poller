@@ -22,6 +22,10 @@ defmodule RepoPoller.Poller do
     defstruct(repo: nil, adapter: nil, interval: nil, pool_id: nil, caller: nil)
   end
 
+  ##############
+  # Client API #
+  ##############
+
   def start_link({%{name: repo_name}, _adapter, _pool_id, _interval} = args) do
     GenServer.start_link(__MODULE__, args, name: String.to_atom(repo_name))
   end
@@ -30,13 +34,19 @@ defmodule RepoPoller.Poller do
     GenServer.start_link(__MODULE__, args, name: String.to_atom(repo_name))
   end
 
+  @doc false
   def poll(name) do
     send(name, :poll)
   end
 
+  @doc false
   def state(name) do
     GenServer.call(name, :state)
   end
+
+  ####################
+  # Server Callbacks #
+  ####################
 
   @spec init({Repo.t(), State.adapter(), atom(), State.interval()}) :: {:ok, State.t()}
   @impl true
@@ -46,6 +56,7 @@ defmodule RepoPoller.Poller do
     {:ok, state}
   end
 
+  @doc false
   @spec init({pid(), Repo.t(), State.adapter(), atom(), State.interval()}) :: {:ok, State.t()}
   @impl true
   def init({caller, repo, adapter, pool_id, interval}) do
@@ -100,6 +111,10 @@ defmodule RepoPoller.Poller do
   def handle_call(:state, _from, state) do
     {:reply, state, state}
   end
+
+  #############
+  # Internals #
+  #############
 
   @spec schedule_poll(State.interval()) :: reference()
   defp schedule_poll(interval) do
