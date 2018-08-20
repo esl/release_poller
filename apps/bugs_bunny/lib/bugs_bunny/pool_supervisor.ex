@@ -1,14 +1,19 @@
 defmodule BugsBunny.PoolSupervisor do
   use Supervisor
 
+  @type config :: [rabbitmq_config: keyword(), rabbitmq_conn_pool: keyword()]
+
+  @spec start_link(config()) :: Supervisor.on_start()
   def start_link(config) do
     Supervisor.start_link(__MODULE__, config, name: __MODULE__)
   end
 
+  @spec start_link(config(), atom()) :: Supervisor.on_start()
   def start_link(config, name) do
     Supervisor.start_link(__MODULE__, config, name: name)
   end
 
+  @impl true
   def init(config) do
     children =
       case Keyword.get(config, :rabbitmq_conn_pool) do
