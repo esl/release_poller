@@ -1,8 +1,6 @@
 defmodule RepoPoller.Integration.PollerTest do
   use ExUnit.Case
 
-  import ExUnit.CaptureLog
-
   alias AMQP.{Connection, Channel, Queue, Basic}
 
   alias RepoPoller.Poller

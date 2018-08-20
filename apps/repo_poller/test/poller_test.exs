@@ -8,47 +8,15 @@ defmodule RepoPoller.PollerTest do
   alias RepoPoller.Domain.{Repo, Tag}
   alias RepoPoller.DB
 
+  alias BugsBunny.FakeRabbitMQ
+  alias BugsBunny.Worker.RabbitConnection
+
   setup do
     DB.clear()
 
     on_exit(fn ->
       DB.clear()
     end)
-  end
-
-  # TODOL: change this fake adapter to not depend on RabbitMQ
-  # based on this: http://tech.adroll.com/blog/dev/2018/03/28/elixir-stubs-for-tests.html
-  defmodule FakeRabbitMQ do
-    @behaviour BugsBunny.Clients.Adapter
-    use AMQP
-
-    @impl true
-    def publish(_channel, _exchange, _routing_key, _payload, _options \\ []) do
-      :ok
-    end
-
-    @impl true
-    def consume(_channel, _queue, _consumer_pid \\ nil, _options \\ []) do
-      {:ok, ""}
-    end
-
-    @impl true
-    def open_connection(_config) do
-      # Connection.open(config)
-      {:ok, %Connection{pid: self()}}
-    end
-
-    @impl true
-    def open_channel(conn) do
-      # Channel.open(conn)
-      {:ok, %Channel{conn: conn, pid: self()}}
-    end
-
-    @impl true
-    def close_connection(_conn) do
-      #  Connection.close(conn)
-      :ok
-    end
   end
 
   setup do
@@ -69,7 +37,7 @@ defmodule RepoPoller.PollerTest do
       :rabbitmq_conn_pool,
       pool_id: pool_id,
       name: {:local, pool_id},
-      worker_module: BugsBunny.Worker.RabbitConnection,
+      worker_module: RabbitConnection,
       size: 1,
       max_overflow: 0
     ]
