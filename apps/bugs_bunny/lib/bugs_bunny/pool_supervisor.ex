@@ -5,7 +5,7 @@ defmodule BugsBunny.PoolSupervisor do
 
   @spec start_link(config()) :: Supervisor.on_start()
   def start_link(config) do
-    Supervisor.start_link(__MODULE__, config, name: __MODULE__)
+    Supervisor.start_link(__MODULE__, config)
   end
 
   @spec start_link(config(), atom()) :: Supervisor.on_start()
