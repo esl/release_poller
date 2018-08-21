@@ -1,8 +1,12 @@
 defmodule BugsBunny.Integration.ApiTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
+  import ExUnit.CaptureIO
   alias BugsBunny.RabbitMQ
   alias BugsBunny.Worker.RabbitConnection
+
+  @moduletag :integration
 
   setup do
     n = :rand.uniform(100)
@@ -10,7 +14,8 @@ defmodule BugsBunny.Integration.ApiTest do
 
     rabbitmq_config = [
       channels: 1,
-      queue: "", # fire and forget queue
+      # fire and forget queue
+      queue: "",
       exchange: "",
       client: RabbitMQ
     ]
@@ -68,5 +73,65 @@ defmodule BugsBunny.Integration.ApiTest do
     assert {:ok, conn} = BugsBunny.get_connection(pool_id)
     assert {:ok, channel} = RabbitMQ.open_channel(conn)
     assert :ok = AMQP.Channel.close(channel)
+  end
+
+  test "returns channel to the pool only once when there is a crash in a client using with_channel",
+       %{pool_id: pool_id} do
+    # TODO: capture [error] Process #PID<X.X.X> raised an exception
+    capture_io(fn ->
+      conn_worker = :poolboy.checkout(pool_id)
+      :ok = :poolboy.checkin(pool_id, conn_worker)
+      :erlang.trace(conn_worker, true, [:receive])
+
+      client_pid =
+        spawn(fn ->
+          BugsBunny.with_channel(pool_id, fn {:ok, _channel} ->
+            raise "die"
+          end)
+        end)
+
+      ref = Process.monitor(client_pid)
+      # wait for client to die
+      assert_receive {:DOWN, ^ref, :process, ^client_pid, {%{message: "die"}, _stacktrace}}, 1000
+      # wait for channel to be put it back into the pool
+      assert_receive {:trace, ^conn_worker, :receive,
+                      {:"$gen_cast", {:checkin_channel, _channel}}}, 1000
+
+      # wait for the connection worker to receive a :DOWN message from the client
+      assert_receive {:trace, ^conn_worker, :receive,
+                      {:DOWN, _ref, :process, ^client_pid, {%{message: "die"}, _stacktrace}}}
+
+      assert %{channels: channels} = RabbitConnection.state(conn_worker)
+      assert length(channels) == 1
+    end)
+  end
+
+  test "returns channel to the pool only once when the channel closes using with_channel",
+       %{pool_id: pool_id} do
+    conn_worker = :poolboy.checkout(pool_id)
+    :ok = :poolboy.checkin(pool_id, conn_worker)
+    :erlang.trace(conn_worker, true, [:receive])
+
+    logs =
+      capture_log(fn ->
+        client_pid =
+          spawn(fn ->
+            BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
+              :ok = AMQP.Channel.close(channel)
+            end)
+          end)
+
+        ref = Process.monitor(client_pid)
+        assert_receive {:DOWN, ^ref, :process, ^client_pid, :normal}, 500
+
+        assert_receive {:trace, ^conn_worker, :receive,
+                        {:"$gen_cast", {:checkin_channel, _channel}}}
+
+        assert_receive {:trace, ^conn_worker, :receive, {:EXIT, _channel_pid, :normal}}
+        assert %{channels: channels} = RabbitConnection.state(conn_worker)
+        assert length(channels) == 1
+      end)
+
+    assert logs =~ "[Rabbit] channel lost, attempting to reconnect reason: :normal"
   end
 end

@@ -13,7 +13,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
     @type t :: %__MODULE__{
             connection: AMQP.Connection.t(),
             channels: list(pid()),
-            monitors: [], # TODO: use an ets table to persist the monitors
+            # TODO: use an ets table to persist the monitors
+            monitors: [],
             config: config()
           }
 
@@ -162,7 +163,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
     Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
-    new_channels = List.delete(channels, pid)
+    new_channels =
+      Enum.filter(channels, fn %{pid: channel_pid} ->
+        channel_pid != pid
+      end)
 
     worker =
       get_client(config)
@@ -173,7 +177,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
       pid == chan_id
     end)
     |> case do
-      # checkin unmonitored channel :thinking_face:
+      # if nil means DOWN message already handled and monitor already removed
       nil ->
         {:noreply, %State{state | channels: [worker | new_channels]}}
 

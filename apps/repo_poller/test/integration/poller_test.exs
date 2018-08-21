@@ -8,6 +8,7 @@ defmodule RepoPoller.Integration.PollerTest do
   alias RepoPoller.Domain.{Repo, Tag}
   alias RepoPoller.DB
 
+  @moduletag :integration
   @queue "test.new_releases.queue"
 
   setup do

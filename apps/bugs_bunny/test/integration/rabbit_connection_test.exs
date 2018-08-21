@@ -6,6 +6,8 @@ defmodule BugsBunny.Integration.RabbitConnectionTest do
   alias BugsBunny.RabbitMQ
   alias BugsBunny.Worker.RabbitConnection, as: ConnWorker
 
+  @moduletag :integration
+
   setup do
     rabbitmq_config = [
       channels: 5,

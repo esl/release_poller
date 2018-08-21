@@ -1,6 +1,5 @@
 defmodule BugsBunny do
   alias BugsBunny.Worker.RabbitConnection, as: Conn
-  alias BugsBunny.ChannelSupervisor
 
   @type f :: (AMQP.Channel.t() | {:error, :disconected | :out_of_channels} -> any())
 

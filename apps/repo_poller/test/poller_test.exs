@@ -62,7 +62,7 @@ defmodule RepoPoller.PollerTest do
     repo = Repo.new("https://github.com/elixir-lang/elixir")
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 50}})
     Poller.poll(pid)
-    assert_receive {:ok, tags}, 200
+    assert_receive {:ok, tags}, 1000
     assert_receive {:ok, ^tags}
   end
 
@@ -70,7 +70,7 @@ defmodule RepoPoller.PollerTest do
     repo = Repo.new("https://github.com/elixir-lang/elixir")
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
     Poller.poll(pid)
-    assert_receive {:ok, _tags}, 200
+    assert_receive {:ok, _tags}, 1000
     tags = DB.get_tags(repo)
     refute Enum.empty?(tags)
     %{repo: %{tags: state_tags}} = Poller.state(pid)
@@ -95,7 +95,7 @@ defmodule RepoPoller.PollerTest do
     :ok = DB.save(repo)
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
     Poller.poll(pid)
-    assert_receive {:ok, _tags}, 200
+    assert_receive {:ok, _tags}, 1000
     tags = DB.get_tags(repo)
     assert length(tags) == 21
     %{repo: %{tags: state_tags}} = Poller.state(pid)
