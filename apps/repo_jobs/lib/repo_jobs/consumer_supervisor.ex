@@ -20,7 +20,7 @@ defmodule RepoJobs.ConsumerSupervisor do
             Application.get_env(:repo_jobs, :rabbitmq_conn_pool, [])
             |> Keyword.fetch!(:pool_id)
 
-          for n <- 1 .. consumers do
+          for n <- 1..consumers do
             Supervisor.child_spec({Consumer, pool_id}, id: "consumer_#{n}")
           end
       end
