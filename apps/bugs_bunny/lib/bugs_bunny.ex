@@ -28,15 +28,29 @@ defmodule BugsBunny do
 
   @spec do_with_conn(pid(), f()) :: any()
   defp do_with_conn(conn_worker, fun) do
-    case Conn.checkout_channel(conn_worker) do
+    case checkout_channel(conn_worker) do
       {:ok, channel} = ok_chan ->
         try do
           fun.(ok_chan)
         after
-          :ok = Conn.checkin_channel(conn_worker, channel)
+          :ok = checkin_channel(conn_worker, channel)
         end
       {:error, _} = error->
         fun.(error)
     end
+  end
+
+  def get_connection_worker(pool_id) do
+    conn_worker = :poolboy.checkout(pool_id)
+    :ok = :poolboy.checkin(pool_id, conn_worker)
+    conn_worker
+  end
+
+  def checkout_channel(conn_worker) do
+    Conn.checkout_channel(conn_worker)
+  end
+
+  def checkin_channel(conn_worker, channel) do
+    Conn.checkin_channel(conn_worker, channel)
   end
 end

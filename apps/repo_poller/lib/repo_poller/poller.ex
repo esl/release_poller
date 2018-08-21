@@ -7,7 +7,7 @@ defmodule RepoPoller.Poller do
   alias RepoPoller.Repository.Service
 
   defmodule State do
-    @enforce_keys [:repo]
+    @enforce_keys [:repo, :pool_id]
 
     @type adapter :: module()
     @type interval :: non_neg_integer()

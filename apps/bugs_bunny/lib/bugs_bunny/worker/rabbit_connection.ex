@@ -12,7 +12,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
     @enforce_keys [:config]
     @type t :: %__MODULE__{
             connection: AMQP.Connection.t(),
-            channels: list(pid()),
+            channels: list(AMQP.Channel.t()),
             # TODO: use an ets table to persist the monitors
             monitors: [],
             config: config()
@@ -242,7 +242,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
     Logger.info("[Rabbit] connected")
     %{pid: pid} = connection
-    Process.link(pid)
+    true = Process.link(pid)
 
     num_channels = Keyword.get(config, :channels, @default_channels)
 
