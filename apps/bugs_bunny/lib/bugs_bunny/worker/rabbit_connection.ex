@@ -168,7 +168,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
         channel_pid != pid
       end)
 
-    worker =
+    {:ok, channel} =
       get_client(config)
       |> start_channel(conn)
 
@@ -179,13 +179,13 @@ defmodule BugsBunny.Worker.RabbitConnection do
     |> case do
       # if nil means DOWN message already handled and monitor already removed
       nil ->
-        {:noreply, %State{state | channels: [worker | new_channels]}}
+        {:noreply, %State{state | channels: [channel | new_channels]}}
 
       {ref, _} = returned ->
         true = Process.demonitor(ref)
         new_monitors = List.delete(monitors, returned)
 
-        {:noreply, %State{state | channels: [worker | new_channels], monitors: new_monitors}}
+        {:noreply, %State{state | channels: [channel | new_channels], monitors: new_monitors}}
     end
   end
 
@@ -281,6 +281,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
       {:error, reason} = error ->
         Logger.error("[Rabbit] error starting channel reason: #{inspect(reason)}")
         error
+
+      error ->
+        Logger.error("[Rabbit] error starting channel reason: #{inspect(error)}")
+        {:error, error}
     end
   end
 

@@ -20,7 +20,7 @@ defmodule BugsBunny.Integration.RabbitConnectionTest do
   end
 
   test "reconnects to rabbitmq when a connection crashes", %{config: config} do
-    pid = start_supervised!({ConnWorker, [{:reconnect_interval, 10} | config]})
+    pid = start_supervised!({ConnWorker, [{:reconnect_interval, 100} | config]})
     :erlang.trace(pid, true, [:receive])
 
     logs =
@@ -29,7 +29,7 @@ defmodule BugsBunny.Integration.RabbitConnectionTest do
         true = Process.exit(conn_pid, :kill)
         assert_receive {:trace, ^pid, :receive, {:EXIT, ^conn_pid, :killed}}
         assert_receive {:trace, ^pid, :receive, {:EXIT, _channel_pid, :shutdown}}
-        assert_receive {:trace, ^pid, :receive, :connect}
+        assert_receive {:trace, ^pid, :receive, :connect}, 200
         assert {:ok, _conn} = ConnWorker.get_connection(pid)
       end)
 
