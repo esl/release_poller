@@ -12,7 +12,8 @@ defmodule ReleasePoller.MixProject do
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
-      ]
+      ],
+      dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
     ]
   end
 
@@ -23,7 +24,8 @@ defmodule ReleasePoller.MixProject do
   # Run "mix help deps" for examples and options.
   defp deps do
     [
-      {:excoveralls, "~> 0.9", only: :test}
+      {:excoveralls, "~> 0.9", only: :test},
+      {:dialyxir, "~> 1.0.0-rc.3", only: [:dev], runtime: false}
     ]
   end
 end
