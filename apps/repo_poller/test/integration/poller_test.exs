@@ -73,7 +73,7 @@ defmodule RepoPoller.Integration.PollerTest do
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       {:ok, consumer_tag} = Basic.consume(channel, @queue)
       assert_receive {:basic_deliver, payload, %{consumer_tag: ^consumer_tag}}
-      [tag] = Poison.decode!(payload) |> Enum.map(&Tag.new/1)
+      [tag] = payload |> Poison.decode!() |> Enum.map(&Tag.new/1)
 
       assert tag == %Tag{
                commit: %{

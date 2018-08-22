@@ -56,7 +56,7 @@ defmodule BugsBunny.Integration.RabbitConnectionTest do
         assert_receive {:trace, ^pid, :receive, {:EXIT, ^channel_pid, :normal}}
         %{channels: channels, monitors: monitors} = ConnWorker.state(pid)
         assert length(channels) == 5
-        assert length(monitors) == 0
+        assert Enum.empty?(monitors)
       end)
 
     assert logs =~ "[Rabbit] channel lost, attempting to reconnect reason: :normal"

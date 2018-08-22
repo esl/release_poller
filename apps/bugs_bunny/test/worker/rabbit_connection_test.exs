@@ -46,7 +46,7 @@ defmodule BugsBunny.Worker.RabbitConnectionTest do
     assert {:ok, channel} = ConnWorker.checkout_channel(pid)
     assert {:error, :out_of_channels} = ConnWorker.checkout_channel(pid)
     %{channels: channels, monitors: monitors} = ConnWorker.state(pid)
-    assert length(channels) == 0
+    assert Enum.empty?(channels)
     assert length(monitors) == 1
     assert :ok = ConnWorker.checkin_channel(pid, channel)
   end

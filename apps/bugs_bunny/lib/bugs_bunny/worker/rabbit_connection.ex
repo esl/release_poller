@@ -132,7 +132,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   @impl true
   def handle_info(:connect, %{config: config, config: config} = state) do
-    get_client(config).open_connection(config)
+    config
+    |> get_client().open_connection(config)
     |> handle_rabbit_connect(state)
   end
 
@@ -169,7 +170,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
       end)
 
     {:ok, channel} =
-      get_client(config)
+      config
+      |> get_client()
       |> start_channel(conn)
 
     monitors
@@ -249,7 +251,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
     channels =
       for _ <- 1..num_channels do
         {:ok, channel} =
-          get_client(config)
+          config
+          |> get_client()
           |> start_channel(connection)
 
         channel

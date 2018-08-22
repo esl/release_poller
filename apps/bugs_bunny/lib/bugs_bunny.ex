@@ -35,7 +35,7 @@ defmodule BugsBunny do
         after
           :ok = checkin_channel(conn_worker, channel)
         end
-      {:error, _} = error->
+      {:error, _} = error ->
         fun.(error)
     end
   end

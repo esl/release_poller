@@ -124,7 +124,8 @@ defmodule RepoPoller.Poller do
   @spec update_repo_tags(Repo.t(), list(Tag.t()), State.t()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
   defp update_repo_tags(repo, tags, state) do
-    DB.get_tags(repo)
+    repo
+    |> DB.get_tags()
     |> Tag.new_tags(tags)
     |> case do
       [] ->

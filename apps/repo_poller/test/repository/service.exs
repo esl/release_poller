@@ -13,7 +13,7 @@ defmodule RepoPoller.Api.GithubTest do
 
   test "calls real github adapter", %{repo: repo} do
     lambda_list = fn _, _, _ ->
-      [ ]
+      []
     end
 
     with_mock Tags, list: lambda_list do

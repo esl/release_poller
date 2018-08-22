@@ -15,7 +15,8 @@ defmodule RepoPoller.Domain.Repo do
     %{path: path} = URI.parse(url)
 
     [owner, repo_name] =
-      String.replace_leading(path, "/", "")
+      path
+      |> String.replace_leading("/", "")
       |> String.split("/")
 
     %Repo{owner: owner, name: repo_name}

@@ -32,7 +32,8 @@ defmodule RepoJobs.Consumer do
 
   @impl true
   def handle_info(:connect, %{pool_id: pool_id} = state) do
-    BugsBunny.get_connection_worker(pool_id)
+    pool_id
+    |> BugsBunny.get_connection_worker()
     |> BugsBunny.checkout_channel()
     |> handle_channel_checkout(state)
   end
