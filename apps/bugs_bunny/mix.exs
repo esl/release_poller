@@ -18,7 +18,8 @@ defmodule BugsBunny.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      # https://github.com/pma/amqp/issues/90
+      extra_applications: [:lager, :logger, :amqp]
     ]
   end
 

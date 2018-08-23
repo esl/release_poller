@@ -40,7 +40,6 @@ defmodule RepoPoller.Integration.PollerTest do
     ]
 
     rabbitmq_conn_pool = [
-      :repo_poller,
       :rabbitmq_conn_pool,
       pool_id: pool_id,
       name: {:local, pool_id},
