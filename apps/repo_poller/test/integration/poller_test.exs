@@ -7,6 +7,8 @@ defmodule RepoPoller.Integration.PollerTest do
   alias RepoPoller.Repository.GithubFake
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
+  alias Domain.Jobs.NewReleaseJob
+  alias Domain.Serializers.NewReleaseJobSerializer, as: JobSerializer
   alias RepoPoller.DB
 
   @moduletag :integration
@@ -74,19 +76,26 @@ defmodule RepoPoller.Integration.PollerTest do
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       {:ok, consumer_tag} = Basic.consume(channel, @queue)
       assert_receive {:basic_deliver, payload, %{consumer_tag: ^consumer_tag}}
-      [tag] = payload |> Poison.decode!() |> Enum.map(&Tag.new/1)
+      job = JobSerializer.deserialize!(payload)
 
-      assert tag == %Tag{
-               commit: %{
-                 sha: "2b338092b6da5cd5101072dfdd627cfbb49e4736",
-                 url:
-                   "https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736"
-               },
-               name: "v1.7.2",
-               node_id: "MDM6UmVmMTIzNDcxNDp2MS43LjI=",
-               tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
-               zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
-             }
+      assert job ==
+               %NewReleaseJob{
+                 repo: repo,
+                 new_tags: [
+                   %Tag{
+                     commit: %{
+                       sha: "2b338092b6da5cd5101072dfdd627cfbb49e4736",
+                       url:
+                         "https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736"
+                     },
+                     name: "v1.7.2",
+                     node_id: "MDM6UmVmMTIzNDcxNDp2MS43LjI=",
+                     tarball_url:
+                       "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
+                     zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
+                   }
+                 ]
+               }
     end)
   end
 end

@@ -3,6 +3,8 @@ defmodule RepoJobs.Consumer do
 
   require Logger
 
+  alias Domain.Serializers.NewReleaseJobSerializer
+
   defmodule State do
     @enforce_keys [:pool_id]
 
@@ -60,8 +62,8 @@ defmodule RepoJobs.Consumer do
   # This is sent for each message consumed, where `payload` contains the message
   # content and `meta` contains all the metadata set when sending with
   # Basic.publish or additional info set by the broker;
-  def handle_info({:basic_deliver, payload, meta}, state) do
-    tags = Poison.decode!(payload)
+  def handle_info({:basic_deliver, payload, _meta}, state) do
+    job = NewReleaseJobSerializer.deserialize!(payload)
     Logger.info("[consumer] consuming payload")
     {:noreply, state}
   end
