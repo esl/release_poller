@@ -132,8 +132,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
   @impl true
   def handle_info(:connect, %{config: config, config: config} = state) do
-    config
-    |> get_client().open_connection(config)
+    get_client(config).open_connection(config)
     |> handle_rabbit_connect(state)
   end
 
