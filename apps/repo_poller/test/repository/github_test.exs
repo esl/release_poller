@@ -3,7 +3,8 @@ defmodule RepoPoller.Api.GithubTest do
   import Mock
 
   alias RepoPoller.Repository.Github
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
   alias Tentacat.Repositories.Tags
 
   setup do

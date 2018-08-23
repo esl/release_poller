@@ -2,7 +2,7 @@ defmodule RepoPoller.Integration.GithubTest do
   use ExUnit.Case, async: true
 
   alias RepoPoller.Repository.Github
-  alias RepoPoller.Domain.Repo
+  alias Domain.Repos.Repo
 
   @moduletag :integration
 

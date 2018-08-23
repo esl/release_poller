@@ -5,7 +5,8 @@ defmodule RepoPoller.Integration.PollerTest do
 
   alias RepoPoller.Poller
   alias RepoPoller.Repository.GithubFake
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
   alias RepoPoller.DB
 
   @moduletag :integration

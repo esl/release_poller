@@ -3,7 +3,10 @@ defmodule RepoPoller.Poller do
   require Logger
 
   alias RepoPoller.DB
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
+  alias Domain.Jobs.NewReleaseJob
+  alias Domain.Serializers.NewReleaseJobSerializer
   alias RepoPoller.Repository.Service
 
   defmodule State do

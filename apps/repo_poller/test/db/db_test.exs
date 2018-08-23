@@ -2,7 +2,8 @@ defmodule ReleasePoller.DBTest do
   use ExUnit.Case
 
   alias RepoPoller.DB
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
 
   setup do
     dialyxir =

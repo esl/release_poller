@@ -41,7 +41,7 @@ defmodule RepoJobs.Consumer do
   @impl true
   def handle_info(
         {:DOWN, monitor, :process, chan_pid, reason},
-        %{pool_id: pool_id, monitor: monitor, channel: %{pid: chan_pid}} = state
+        %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
     Logger.error("[consumer] channel down reason: #{inspect(reason)}")
     schedule_connect()
@@ -84,7 +84,7 @@ defmodule RepoJobs.Consumer do
         ref = Process.monitor(channel_pid)
         {:noreply, %State{state | channel: channel, monitor: ref, consumer_tag: consumer_tag}}
 
-      {:error, reason} = error ->
+      {:error, reason} ->
         Logger.error("[consumer] error consumin channel reason: #{inspect(reason)}")
         schedule_connect()
         {:noreply, %State{state | channel: nil, consumer_tag: nil}}
@@ -101,7 +101,8 @@ defmodule RepoJobs.Consumer do
 
   defp handle_consume(channel) do
     queue = get_rabbitmq_queue()
-    get_rabbitmq_client().consume(channel, queue, self())
+    config = get_rabbitmq_config()
+    get_rabbitmq_client().consume(channel, queue, self(), config)
   end
 
   defp schedule_connect() do

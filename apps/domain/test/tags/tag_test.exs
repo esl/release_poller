@@ -1,7 +1,7 @@
 defmodule RepoPoller.Domain.TagTest do
   use ExUnit.Case, async: true
 
-  alias RepoPoller.Domain.Tag
+  alias Domain.Tags.Tag
 
   test "creates a new tag" do
     tag_map = %{
