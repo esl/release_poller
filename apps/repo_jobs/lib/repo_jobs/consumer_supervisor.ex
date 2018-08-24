@@ -1,7 +1,7 @@
 defmodule RepoJobs.ConsumerSupervisor do
   use Supervisor
 
-  alias RepoJobs.Consumer
+  alias RepoJobs.{Config, Consumer}
 
   def start_link(_) do
     Supervisor.start_link(__MODULE__, [], name: __MODULE__)
@@ -9,16 +9,14 @@ defmodule RepoJobs.ConsumerSupervisor do
 
   def init(_) do
     children =
-      Application.get_env(:repo_jobs, :consumers)
+      Config.get_consumers()
       |> case do
         # don't start any child and don't ask for pool configs (for testing only)
         nil ->
           []
 
         consumers ->
-          pool_id =
-            Application.get_env(:repo_jobs, :rabbitmq_conn_pool, [])
-            |> Keyword.fetch!(:pool_id)
+          pool_id = Config.get_connection_pool_id()
 
           for n <- 1..consumers do
             Supervisor.child_spec({Consumer, pool_id}, id: "consumer_#{n}")

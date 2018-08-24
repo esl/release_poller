@@ -3,7 +3,7 @@ defmodule RepoPoller.PollerSupervisor do
 
   alias RepoPoller.Poller
   alias Domain.Repos.Repo
-  alias RepoPoller.DB
+  alias RepoPoller.{DB, Config}
 
   def start_link(_) do
     Supervisor.start_link(__MODULE__, [], name: __MODULE__)
@@ -14,16 +14,14 @@ defmodule RepoPoller.PollerSupervisor do
     DB.new()
 
     children =
-      Application.get_env(:repo_poller, :repos, [])
+      Config.get_repos()
       |> case do
         # don't start any child and don't ask for pool configs (for testing only)
         [] ->
           []
 
         repos ->
-          pool_id =
-            Application.get_env(:repo_poller, :rabbitmq_conn_pool, [])
-            |> Keyword.fetch!(:pool_id)
+          pool_id = Config.get_connection_pool_id()
 
           for {url, adapter, interval} <- repos do
             repo = Repo.new(url)

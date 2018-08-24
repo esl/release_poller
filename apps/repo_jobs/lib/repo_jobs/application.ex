@@ -5,12 +5,12 @@ defmodule RepoJobs.Application do
 
   use Application
 
-  alias RepoJobs.ConsumerSupervisor
+  alias RepoJobs.{Config, ConsumerSupervisor}
 
   def start(_type, _args) do
     # List all child processes to be supervised
-    rabbitmq_config = Application.get_env(:repo_jobs, :rabbitmq_config, [])
-    rabbitmq_conn_pool = Application.get_env(:repo_jobs, :rabbitmq_conn_pool, [])
+    rabbitmq_config = Config.get_rabbitmq_config()
+    rabbitmq_conn_pool = Config.get_connection_pool_config()
 
     children = [
       {BugsBunny.PoolSupervisor,

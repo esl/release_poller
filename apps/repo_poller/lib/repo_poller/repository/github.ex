@@ -5,6 +5,7 @@ defmodule RepoPoller.Repository.Github do
   alias Tentacat.Repositories.Tags
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
+  alias RepoPoller.Config
 
   @spec get_tags(Repo.t()) ::
           {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, map()}
@@ -51,13 +52,9 @@ defmodule RepoPoller.Repository.Github do
     {:ok, map_tags(json_body)}
   end
 
-  defp get_access_auth() do
-    Application.get_env(:repo_poller, :github_auth)
-  end
-
   @spec new() :: Tentacat.Client.t()
   defp new() do
-    case get_access_auth() do
+    case Config.get_github_access_token() do
       nil -> Client.new()
       auth -> Client.new(auth)
     end
