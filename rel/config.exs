@@ -44,8 +44,8 @@ end
 # when running `mix release`, the first release in the file
 # will be used by default
 
-release :repo_poller do
-  set(version: "0.1.0")
+release :poller do
+  set(version: current_version(:repo_poller))
 
   set(
     applications: [
@@ -57,8 +57,8 @@ release :repo_poller do
   )
 end
 
-release :repo_jobs do
-  set(version: "0.1.0")
+release :jobs do
+  set(version: current_version(:repo_jobs))
 
   set(
     applications: [
