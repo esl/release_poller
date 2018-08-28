@@ -1,7 +1,7 @@
 defmodule BugsBunny do
   alias BugsBunny.Worker.RabbitConnection, as: Conn
 
-  @type f :: (AMQP.Channel.t() | {:error, :disconected | :out_of_channels} -> any())
+  @type f :: ({:ok, AMQP.Channel.t()} | {:error, :disconected | :out_of_channels} -> any())
 
   @doc """
   Gets a connection from a connection worker so any client can exec commands
@@ -19,7 +19,7 @@ defmodule BugsBunny do
   the worker's channel pool, executes the function with the result of the
   checkout and finally puts the channel back into the worker's pool.
   """
-  @spec with_channel(atom(), f()) :: :ok | {:error, :out_of_retries}
+  @spec with_channel(atom(), f()) :: any()
   def with_channel(pool_id, fun) do
     conn_worker = :poolboy.checkout(pool_id)
     :ok = :poolboy.checkin(pool_id, conn_worker)
@@ -35,6 +35,7 @@ defmodule BugsBunny do
         after
           :ok = checkin_channel(conn_worker, channel)
         end
+
       {:error, _} = error ->
         fun.(error)
     end

@@ -21,22 +21,22 @@ defmodule Domain.Serializers.NewReleaseJobSerializer.Test do
       zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
     }
 
-    {:ok, repo: repo, tags: [tag]}
+    {:ok, repo: repo, tag: tag}
   end
 
-  test "serializes a new release job", %{repo: repo, tags: tags} do
-    job = NewReleaseJob.new(repo, tags)
+  test "serializes a new release job", %{repo: repo, tag: tag} do
+    job = NewReleaseJob.new(repo, tag)
 
     assert JobSerializer.serialize!(job) ==
-             "{\"repo\":{\"tasks\":[],\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tags\":[{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}]}"
+             "{\"repo\":{\"tasks\":[],\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
   end
 
-  test "deserialize a new release job", %{repo: repo, tags: tags} do
-    job = NewReleaseJob.new(repo, tags)
+  test "deserialize a new release job", %{repo: repo, tag: tag} do
+    job = NewReleaseJob.new(repo, tag)
 
     decoded_job =
       JobSerializer.deserialize!(
-        "{\"repo\":{\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tags\":[{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}]}"
+        "{\"repo\":{\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\": {\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
       )
 
     assert decoded_job == job

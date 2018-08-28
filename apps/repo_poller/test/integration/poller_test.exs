@@ -68,7 +68,7 @@ defmodule RepoPoller.Integration.PollerTest do
     repo = Repo.new("https://github.com/new-tag/elixir")
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 10_000}})
     Poller.poll(pid)
-    assert_receive {:ok, _tags}, 200
+    assert_receive {:ok, _tags}, 1000
     tags = DB.get_tags(repo)
     refute Enum.empty?(tags)
 
@@ -80,21 +80,22 @@ defmodule RepoPoller.Integration.PollerTest do
       assert job ==
                %NewReleaseJob{
                  repo: repo,
-                 new_tags: [
-                   %Tag{
-                     commit: %{
-                       sha: "2b338092b6da5cd5101072dfdd627cfbb49e4736",
-                       url:
-                         "https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736"
-                     },
-                     name: "v1.7.2",
-                     node_id: "MDM6UmVmMTIzNDcxNDp2MS43LjI=",
-                     tarball_url:
-                       "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
-                     zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
-                   }
-                 ]
+                 new_tag: %Tag{
+                   commit: %{
+                     sha: "2b338092b6da5cd5101072dfdd627cfbb49e4736",
+                     url:
+                       "https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736"
+                   },
+                   name: "v1.7.2",
+                   node_id: "MDM6UmVmMTIzNDcxNDp2MS43LjI=",
+                   tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
+                   zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
+                 }
                }
     end)
+
+    # TODO: Test new tags are prepended to old tags and scheduled
+    # TODO: test no job to publish
+    # TODO: test publish multiple jobs - multiple new tags
   end
 end
