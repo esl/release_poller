@@ -93,9 +93,9 @@ defmodule RepoPoller.Integration.PollerTest do
                  }
                }
     end)
-
-    # TODO: Test new tags are prepended to old tags and scheduled
-    # TODO: test no job to publish
-    # TODO: test publish multiple jobs - multiple new tags
   end
+
+  # TODO: Test new tags are prepended to old tags and scheduled
+  # TODO: test no job to publish
+  # TODO: test publish multiple jobs - multiple new tags
 end

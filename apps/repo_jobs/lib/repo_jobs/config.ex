@@ -1,4 +1,8 @@
 defmodule RepoJobs.Config do
+  def get_github_access_token() do
+    Application.get_env(:repo_jobs, :github_auth) || System.get_env("GITHUB_AUTH")
+  end
+
   def get_consumers() do
     Application.get_env(:repo_jobs, :consumers)
   end
