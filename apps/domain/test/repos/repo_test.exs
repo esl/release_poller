@@ -3,7 +3,7 @@ defmodule RepoPoller.Domain.RepoTest do
 
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
-  alias Domain.Scripts.Script
+  alias Domain.Tasks.Task
 
   test "creates a new repo" do
     assert %Repo{name: "dialyxir", owner: "jeremyjh"} ==
@@ -17,10 +17,10 @@ defmodule RepoPoller.Domain.RepoTest do
       |> Repo.set_tags(tags)
   end
 
-  test "set scripts" do
-    scripts = [ %Script{url: "url"} ]
-    assert %Repo{scripts: ^scripts} =
+  test "set tasks" do
+    tasks = [ %Task{url: "url"} ]
+    assert %Repo{tasks: ^tasks} =
       Repo.new("https://github.com/jeremyjh/dialyxir")
-      |> Repo.set_scripts(scripts)
+      |> Repo.set_tasks(tasks)
   end
 end

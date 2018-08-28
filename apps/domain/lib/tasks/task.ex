@@ -1,4 +1,4 @@
-defmodule Domain.Scripts.Script do
+defmodule Domain.Tasks.Task do
 
   alias __MODULE__
 
@@ -13,7 +13,7 @@ defmodule Domain.Scripts.Script do
 
   defstruct url: nil, path: nil, env: [], actions: []
 
-  @spec new(Enum.t()) :: Script.t() | no_return()
+  @spec new(Enum.t()) :: Task.t() | no_return()
   def new(attrs) do
     struct!(__MODULE__, attrs)
   end

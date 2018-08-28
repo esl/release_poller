@@ -4,23 +4,23 @@ defmodule RepoJobs.JobRunner do
   alias RepoJobs.{FileDownloader, AssetStore}
 
   def run(job) do
-    new_job = save_job_scripts(job)
+    new_job = save_job_tasks(job)
     env = generate_env(new_job)
 
-    for script <- new_job.repo.scripts do
-      do_run(script, env)
+    for task <- new_job.repo.tasks do
+      do_run(task, env)
     end
   end
 
   # TODO: handle failures
-  defp save_job_scripts(job) do
-    %{repo: %{owner: owner, name: name, scripts: scripts}} = job
+  defp save_job_tasks(job) do
+    %{repo: %{owner: owner, name: name, tasks: tasks}} = job
     # /tmp/erlang/otp
     {:ok, tmp_dir} = AssetStore.create_tmp_dir([owner, name])
 
-    new_scripts =
-      scripts
-      |> Enum.map(fn %{url: url} = script ->
+    new_tasks =
+      tasks
+      |> Enum.map(fn %{url: url} = task ->
         # TODO: expire cached files maybe using md5 check or something
         # tmp_dir: /tmp/erlang
         # url: /elixir-lang/elixir/master
@@ -36,10 +36,10 @@ defmodule RepoJobs.JobRunner do
           {:ok, _} = AssetStore.save(file, file_path)
         end
 
-        %{script | path: file_path}
+        %{task | path: file_path}
       end)
 
-    put_in(job, [:repo, :scripts], new_scripts)
+    put_in(job, [:repo, :tasks], new_tasks)
   end
 
   defp generate_env(%{repo: %{name: repo_name}, new_tags: tags}) do
@@ -49,7 +49,7 @@ defmodule RepoJobs.JobRunner do
     end)
   end
 
-  # TODO: add support for multiple adapters e.g shell script (sh path/to/script), Dockerfile etc
+  # TODO: add support for multiple adapters e.g shell task (sh path/to/task), Dockerfile etc
   defp do_run(%{path: path, env: extra_env, actions: []}, env) do
     # TODO: validate output
     # run default action
