@@ -1,8 +1,7 @@
 defmodule RepoJobs.JobRunner do
   require Logger
 
-  alias RepoJobs.{TempStore, TaskFetcher}
-  alias RepoJobs.TaskRunners.Make
+  alias Domain.Tasks.Helpers.TempStore
 
   defmodule NotImplementedError do
     defexception message: "NotImplementedError"
@@ -14,19 +13,38 @@ defmodule RepoJobs.JobRunner do
       new_tag: %{name: tag_name}
     } = job
 
+    job_name = "#{owner}/#{repo_name}##{tag_name}}"
+
     env = generate_env(job)
     # tmp_dir: /tmp/erlang/otp/21.0.2
     {:ok, tmp_dir} = TempStore.create_tmp_dir([owner, repo_name, tag_name])
-    TaskFetcher.fetch(tasks, tmp_dir)
-    |> Enum.map(&exec(&1, env))
-  end
 
-  defp exec(%{adapter: :make} = task, env) do
-    Make.exec(task, env)
-  end
+    tasks
+    |> Enum.map(fn task ->
+      %{url: url, source: source, runner: runner} = task
+      Logger.info("[job_runner] running task #{url} for #{job_name}")
 
-  defp exec(%{adapter: adapter}, _env) do
-    raise NotImplementedError, message: "adapter #{inspect(adapter)} is not implemented yet"
+      try do
+        with {:ok, task} <- source.fetch(task, tmp_dir),
+             :ok <- runner.exec(task, env) do
+          {:ok, task}
+        else
+          {:error, error} ->
+            Logger.error(
+              "[job_runner] error running task #{url} for #{job_name} reason: #{inspect(error)}"
+            )
+
+            {:error, task}
+        end
+      catch
+        error ->
+          Logger.error(
+            "[job_runner] error running task #{url} for #{job_name} reason: #{inspect(error)}"
+          )
+
+          {:error, task}
+      end
+    end)
   end
 
   defp generate_env(%{repo: %{name: repo_name}, new_tag: tag}) do

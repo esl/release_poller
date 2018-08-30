@@ -1,17 +1,22 @@
 defmodule Domain.Tasks.Task do
   alias __MODULE__
+  alias RepoJobs.Tasks.Runners.Make
+  alias RepoJobs.Tasks.Sources.Github
 
-  @type task_adapter :: :make
+  @type runner :: module()
+  # TODO: add support for other sources e.g GitLab etc
+  @type source :: module()
 
   @type t :: %__MODULE__{
           url: String.t(),
           path: Path.t(),
           env: keyword(),
           commands: list(String.t()),
-          adapter: task_adapter()
+          runner: runner(),
+          source: source()
         }
 
-  defstruct url: nil, path: nil, env: [], commands: [], adapter: :make
+  defstruct url: nil, path: nil, env: [], commands: [], runner: Make, source: Github
 
   @spec new(Enum.t()) :: Task.t() | no_return()
   def new(attrs) do

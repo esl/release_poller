@@ -1,6 +1,7 @@
-defmodule RepoJobs.TaskRunners.Make do
-  alias RepoJobs.TaskRunners.TaskRunner
-  @behaviour TaskRunner
+defmodule RepoJobs.Tasks.Runners.Make do
+  alias RepoJobs.Tasks.Runners.Runner
+
+  @behaviour Runner
 
   @filename "Makefile"
 
@@ -15,8 +16,7 @@ defmodule RepoJobs.TaskRunners.Make do
         :ok
 
       error ->
-        error_path = Path.join([path, @filename])
-        throw("Error executing #{error_path} reason: #{inspect(error)}")
+        {:error, error}
     end
   end
 
@@ -36,8 +36,8 @@ defmodule RepoJobs.TaskRunners.Make do
           :ok
 
         error ->
-          error_path = Path.join([path, @filename])
-          throw("error executing #{error_path} reason: #{inspect(error)}")
+          # next commands may depend on failed command so we need to break on error
+          throw error
       end
     end
   end
