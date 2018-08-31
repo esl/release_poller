@@ -1,7 +1,7 @@
 defmodule Domain.Tasks.Task do
   alias __MODULE__
-  alias RepoJobs.Tasks.Runners.Make
-  alias RepoJobs.Tasks.Sources.Github
+  alias Domain.Tasks.Runners.Make
+  alias Domain.Tasks.Sources.Github
 
   @type runner :: module()
   # TODO: add support for other sources e.g GitLab etc

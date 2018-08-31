@@ -1,10 +1,12 @@
-defmodule RepoPoller.Domain.TaskTest do
+defmodule Domain.Tasks.TaskTest do
   use ExUnit.Case, async: true
 
   alias Domain.Tasks.Task
+  alias Domain.Tasks.Runners.Make
+  alias Domain.Tasks.Sources.Github
 
   test "creates a new task" do
-    make_url = "https://raw.githubusercontent.com/elixir-lang/elixir/master/Makefile"
-    assert %Task{url: make_url} == Task.new(url: make_url)
+    make_url = "https://github.com/elixir-lang/elixir"
+    assert %Task{url: make_url, source: Github, runner: Make} == Task.new(url: make_url)
   end
 end

@@ -1,5 +1,5 @@
-defmodule RepoJobs.Tasks.Sources.Github do
-  alias RepoJobs.Tasks.Sources.Source
+defmodule Domain.Tasks.Sources.Github do
+  alias Domain.Tasks.Sources.Source
   @behaviour Source
 
   alias Domain.Tasks.Helpers.TempStore
@@ -26,7 +26,14 @@ defmodule RepoJobs.Tasks.Sources.Github do
   end
 
   defp clone(repo_url, dest_path) do
-    case System.cmd("git", ["clone", repo_url, "--depth=1", dest_path], env: []) do
+    opts = [
+      env: [],
+      stderr_to_stdout: true,
+      into: IO.stream(:stdio, :line)
+    ]
+
+    System.cmd("git", ["clone", repo_url, "--depth=1", dest_path], opts)
+    |> case do
       {_, 0} ->
         :ok
 

@@ -24,20 +24,11 @@ defmodule RepoJobs.JobRunner do
       %{url: url, source: source, runner: runner} = task
       Logger.info("[job_runner] running task #{url} for #{job_name}")
 
-      try do
-        with {:ok, task} <- source.fetch(task, tmp_dir),
-             :ok <- runner.exec(task, env) do
-          {:ok, task}
-        else
-          {:error, error} ->
-            Logger.error(
-              "[job_runner] error running task #{url} for #{job_name} reason: #{inspect(error)}"
-            )
-
-            {:error, task}
-        end
-      catch
-        error ->
+      with {:ok, task} <- source.fetch(task, tmp_dir),
+           :ok <- runner.exec(task, env) do
+        {:ok, task}
+      else
+        {:error, error} ->
           Logger.error(
             "[job_runner] error running task #{url} for #{job_name} reason: #{inspect(error)}"
           )

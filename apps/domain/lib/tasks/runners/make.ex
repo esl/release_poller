@@ -1,5 +1,5 @@
-defmodule RepoJobs.Tasks.Runners.Make do
-  alias RepoJobs.Tasks.Runners.Runner
+defmodule Domain.Tasks.Runners.Make do
+  alias Domain.Tasks.Runners.Runner
 
   @behaviour Runner
 
@@ -7,11 +7,15 @@ defmodule RepoJobs.Tasks.Runners.Make do
 
   @impl true
   def exec(task, env) do
-    make(task, env)
+    try do
+      make(task, env)
+    catch
+      error -> {:error, error}
+    end
   end
 
   defp make(%{path: path, env: extra_env, commands: []}, env) do
-    case do_make(@filename, env: extra_env ++ env, cd: path) do
+    case do_make([], env: extra_env ++ env, cd: path) do
       {_, 0} ->
         :ok
 
@@ -21,9 +25,6 @@ defmodule RepoJobs.Tasks.Runners.Make do
   end
 
   defp make(%{path: path, env: extra_env, commands: commands}, env) do
-    # run default command if no commands
-    commands = if Enum.empty?(commands), do: [nil]
-
     for command <- commands do
       # TODO: validate output
       # make -f path/to/Makefile build
@@ -31,22 +32,23 @@ defmodule RepoJobs.Tasks.Runners.Make do
       # make -f path/to/Makefile release
       # ...
 
-      case do_make(@filename, command, env: extra_env ++ env, cd: path) do
+      case do_make([command], env: extra_env ++ env, cd: path) do
         {_, 0} ->
           :ok
 
         error ->
           # next commands may depend on failed command so we need to break on error
-          throw error
+          throw(error)
       end
     end
+
+    :ok
   end
 
-  defp do_make(name, opts) do
-    System.cmd("make", ["-f", name], opts)
-  end
+  defp do_make(args, opts) do
+    defaults = [stderr_to_stdout: true, into: IO.stream(:stdio, :line)]
+    opts = Keyword.merge(defaults, opts)
 
-  defp do_make(name, command, opts) do
-    System.cmd("make", ["-f", name, command], opts)
+    System.cmd("make", ["-f", @filename | args], opts)
   end
 end

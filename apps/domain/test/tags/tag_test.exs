@@ -1,4 +1,4 @@
-defmodule RepoPoller.Domain.TagTest do
+defmodule Domain.Tags.TagTest do
   use ExUnit.Case, async: true
 
   alias Domain.Tags.Tag

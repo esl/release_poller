@@ -1,4 +1,4 @@
-defmodule RepoPoller.Domain.RepoTest do
+defmodule Domain.Repos.RepoTest do
   use ExUnit.Case, async: true
 
   alias Domain.Repos.Repo
