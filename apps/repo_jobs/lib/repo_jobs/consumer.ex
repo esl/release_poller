@@ -4,7 +4,7 @@ defmodule RepoJobs.Consumer do
   require Logger
 
   alias Domain.Serializers.NewReleaseJobSerializer
-  alias RepoJobs.Config
+  alias RepoJobs.{Config, JobRunner}
 
   defmodule State do
     @enforce_keys [:pool_id]
@@ -80,10 +80,34 @@ defmodule RepoJobs.Consumer do
   # This is sent for each message consumed, where `payload` contains the message
   # content and `meta` contains all the metadata set when sending with
   # Basic.publish or additional info set by the broker;
-  def handle_info({:basic_deliver, payload, _meta}, %{caller: caller} = state) do
+  def handle_info(
+        {:basic_deliver, payload, %{delivery_tag: delivery_tag}},
+        %{caller: caller, channel: channel} = state
+      ) do
     job = NewReleaseJobSerializer.deserialize!(payload)
     if caller, do: send(caller, {:new_release_job, job})
-    process_job(job)
+
+    client = Config.get_rabbitmq_client()
+
+    # TODO: Mybe create a worker pool to execute jobs in parallel
+    task_results = JobRunner.run(job)
+
+    # if all tasks failed re-schedule the job
+    task_results
+    |> Enum.all?(fn
+      {:error, _} -> true
+      _ -> false
+    end)
+    |> if do
+      # TODO: Make requeuing configurable
+      :ok = client.reject(channel, delivery_tag, requeue: false)
+      if caller, do: send(caller, {:reject, task_results})
+    else
+      # TODO: Make requeuing configurable
+      :ok = client.ack(channel, delivery_tag, requeue: false)
+      if caller, do: send(caller, {:ack, task_results})
+    end
+
     Logger.info("[consumer] consuming payload")
     {:noreply, state}
   end
@@ -126,10 +150,6 @@ defmodule RepoJobs.Consumer do
     queue = Config.get_rabbitmq_queue()
     config = Config.get_rabbitmq_config()
     Config.get_rabbitmq_client().consume(channel, queue, self(), config)
-  end
-
-  defp process_job(_job) do
-    # TODO: process job
   end
 
   defp schedule_connect() do

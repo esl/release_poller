@@ -4,7 +4,10 @@ defmodule RepoJobs.JobRunner do
   alias Domain.Tasks.Helpers.TempStore
   @tmp_dir System.tmp_dir!()
 
-  def run(job, tmp_dir \\ @tmp_dir) do
+  def run(repo, tmp_dir \\ @tmp_dir)
+  def run(%{repo: %{tasks: []}}, _tmp_dir), do: []
+
+  def run(job, tmp_dir) do
     %{
       repo: %{owner: owner, name: repo_name, tasks: tasks},
       new_tag: %{name: tag_name}
@@ -26,9 +29,7 @@ defmodule RepoJobs.JobRunner do
         {:ok, task}
       else
         {:error, error} ->
-          Logger.error(
-            "error running task #{url} for #{job_name} reason: #{inspect(error)}"
-          )
+          Logger.error("error running task #{url} for #{job_name} reason: #{inspect(error)}")
 
           {:error, task}
       end

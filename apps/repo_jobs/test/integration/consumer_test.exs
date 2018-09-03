@@ -1,16 +1,20 @@
 defmodule RepoJobs.Integration.ConsumerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   import ExUnit.CaptureLog
+  import Mox
 
   alias BugsBunny.RabbitMQ
   alias BugsBunny.Worker.RabbitConnection
   alias RepoJobs.Consumer
   alias AMQP.{Connection, Channel, Queue}
   alias Domain.Jobs.NewReleaseJob
+  alias Domain.Serializers.NewReleaseJobSerializer
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
+  alias Domain.Tasks.Task
 
+  @moduletag :integration
   @queue "test.consumer.queue"
 
   setup do
@@ -110,5 +114,165 @@ defmodule RepoJobs.Integration.ConsumerTest do
              },
              repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
            }
+  end
+
+  describe "process jobs" do
+    # Make sure mocks are verified when the test exits
+    setup :verify_on_exit!
+    # Allow any process to consume mocks and stubs defined in tests.
+    setup :set_mox_global
+
+    setup do
+      tag = %Tag{
+        commit: %{
+          sha: "",
+          url: ""
+        },
+        name: "v1.7.2",
+        node_id: "",
+        tarball_url: "tarball/v1.7.2",
+        zipball_url: "zipball/v1.7.2"
+      }
+
+      repo =
+        Repo.new("https://github.com/elixir-lang/elixir")
+        |> Repo.add_tags([tag])
+
+      {:ok, repo: repo}
+    end
+
+    test "successfully process one job's task", %{
+      repo: repo,
+      channel: channel,
+      pool_id: pool_id
+    } do
+      start_supervised!({Consumer, {self(), pool_id}})
+
+      %{tags: [tag]} = repo
+
+      task1 = %Task{
+        url: "https://github.com/f@k31/fake",
+        runner: Domain.TaskMockRunner,
+        source: Domain.TaskMockSource
+      }
+
+      task2 = %Task{
+        url: "https://github.com/f@k32/fake",
+        runner: Domain.TaskMockRunner,
+        source: Domain.TaskMockSource
+      }
+
+      Domain.TaskMockSource
+      |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
+
+      Domain.TaskMockRunner
+      |> expect(:exec, 2, fn _task, _env -> :ok end)
+
+      payload =
+        repo
+        |> Repo.set_tasks([task1, task2])
+        |> NewReleaseJob.new(tag)
+        |> NewReleaseJobSerializer.serialize!()
+
+      :ok = RabbitMQ.publish(channel, "", @queue, payload)
+      assert_receive {:new_release_job, _}, 1000
+      assert_receive {:ack, task_results}, 1000
+      assert [{:ok, ^task1}, {:ok, ^task2}] = task_results
+    end
+
+    test "failed to process job's tasks", %{
+      repo: repo,
+      channel: channel,
+      pool_id: pool_id
+    } do
+      start_supervised!({Consumer, {self(), pool_id}})
+
+      %{tags: [tag]} = repo
+
+      task1 = %Task{
+        url: "https://github.com/f@k31/fake",
+        runner: Domain.TaskMockRunner,
+        source: Domain.TaskMockSource
+      }
+
+      task2 = %Task{
+        url: "https://github.com/f@k32/fake",
+        runner: Domain.TaskMockRunner,
+        source: Domain.TaskMockSource
+      }
+
+      Domain.TaskMockSource
+      |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
+
+      Domain.TaskMockRunner
+      |> expect(:exec, 2, fn
+        ^task1, _env -> {:error, :eaccess}
+        ^task2, _env -> :ok
+      end)
+
+      payload =
+        repo
+        |> Repo.set_tasks([task1, task2])
+        |> NewReleaseJob.new(tag)
+        |> NewReleaseJobSerializer.serialize!()
+
+      log =
+        capture_log(fn ->
+          :ok = RabbitMQ.publish(channel, "", @queue, payload)
+          assert_receive {:new_release_job, _}, 1000
+          assert_receive {:ack, task_results}, 1000
+          assert [{:error, ^task1}, {:ok, ^task2}] = task_results
+        end)
+
+      assert log =~
+               "[error] error running task https://github.com/f@k31/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
+    end
+
+    test "failed to process all job's tasks", %{
+      repo: repo,
+      channel: channel,
+      pool_id: pool_id
+    } do
+      start_supervised!({Consumer, {self(), pool_id}})
+
+      %{tags: [tag]} = repo
+
+      task1 = %Task{
+        url: "https://github.com/f@k31/fake",
+        runner: Domain.TaskMockRunner,
+        source: Domain.TaskMockSource
+      }
+
+      task2 = %Task{
+        url: "https://github.com/f@k32/fake",
+        runner: Domain.TaskMockRunner,
+        source: Domain.TaskMockSource
+      }
+
+      Domain.TaskMockSource
+      |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
+
+      Domain.TaskMockRunner
+      |> expect(:exec, 2, fn _task, _env -> {:error, :eaccess} end)
+
+      payload =
+        repo
+        |> Repo.set_tasks([task1, task2])
+        |> NewReleaseJob.new(tag)
+        |> NewReleaseJobSerializer.serialize!()
+
+      log =
+        capture_log(fn ->
+          :ok = RabbitMQ.publish(channel, "", @queue, payload)
+          assert_receive {:new_release_job, _}, 1000
+          assert_receive {:reject, task_results}, 1000
+          assert [{:error, ^task1}, {:error, ^task2}] = task_results
+        end)
+
+      assert log =~
+               "[error] error running task https://github.com/f@k31/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
+      assert log =~
+               "[error] error running task https://github.com/f@k32/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
+    end
   end
 end
