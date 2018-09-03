@@ -1,6 +1,7 @@
 defmodule Domain.Serializers.NewReleaseJobSerializer do
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
+  alias Domain.Tasks.Task
   alias Domain.Jobs.NewReleaseJob
 
   @spec serialize!(NewReleaseJob.t()) :: iodata() | no_return()
@@ -27,9 +28,30 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
   """
   @spec deserialize!(iodata()) :: NewReleaseJob.t() | no_return()
   def deserialize!(payload) do
-    Poison.decode!(payload,
-      as: %NewReleaseJob{repo: %Repo{name: nil, owner: nil}, new_tag: %Tag{name: nil}},
-      keys: :atoms!
-    )
+    job =
+      Poison.decode!(payload,
+        as: %NewReleaseJob{
+          repo: %Repo{name: nil, owner: nil, tasks: [%Task{}]},
+          new_tag: %Tag{name: nil}
+        },
+        keys: :atoms!
+      )
+
+    map_tasks(job)
+  end
+
+  defp map_tasks(%{repo: repo} = job) do
+    %{tasks: tasks} = repo
+
+    tasks =
+      tasks
+      |> Enum.map(fn %{runner: runner, source: source} = task ->
+        # runner and source cames as stringified atoms "Elixir.Domain.Tasks.Runners.Make"
+        runner_module = Module.concat([runner])
+        source_module = Module.concat([source])
+        %{task | runner: runner_module, source: source_module}
+      end)
+
+    %{job | repo: %{repo | tasks: tasks}}
   end
 end
