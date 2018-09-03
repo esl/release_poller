@@ -13,6 +13,16 @@ defmodule BugsBunny.RabbitMQ do
   end
 
   @impl true
+  def ack(%Channel{} = channel, tag, options \\ []) do
+    Basic.ack(channel, tag, options)
+  end
+
+  @impl true
+  def reject(%Channel{} = channel, tag, options \\ []) do
+    Basic.reject(channel, tag, options)
+  end
+
+  @impl true
   def open_connection(config) do
     Connection.open(config)
   end

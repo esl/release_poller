@@ -15,6 +15,16 @@
     end
 
     @impl true
+    def ack(_channel, _tag, _options \\ []) do
+      :ok
+    end
+
+    @impl true
+    def reject(_channel, _tag, _options \\ []) do
+      :ok
+    end
+
+    @impl true
     def open_connection(config) do
       if Keyword.get(config, :queue) == "error.queue" do
         {:error, :invalid}
