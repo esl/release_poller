@@ -1,11 +1,10 @@
 defmodule Domain.Tasks.Helpers.TempStore do
-  @spec create_tmp_dir(list(String.t())) :: {:ok, Path.t()} | {:error, File.posix()}
-  def create_tmp_dir(parts) when is_list(parts) do
-    # TODO: make configurable
-    tmp_dir = System.tmp_dir!()
-    dir_name = Path.join(parts)
+  @tmp_dir System.tmp_dir!()
 
-    dir_path = Path.join([tmp_dir, "TEST", dir_name])
+  @spec create_tmp_dir(list(String.t()), Path.t()) ::
+          {:ok, Path.t()} | {:error, File.posix()} | no_return()
+  def create_tmp_dir(parts, tmp_dir \\ @tmp_dir) when is_list(parts) do
+    dir_path = Path.join([tmp_dir | parts])
 
     dir_path
     |> File.mkdir_p()
