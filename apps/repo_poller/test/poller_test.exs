@@ -226,8 +226,6 @@ defmodule RepoPoller.PollerTest do
            end) =~ "error polling info for repo: fake reason: :not_found"
   end
 
-  # TODO: test publish new job
-  # TODO: test publish multiple jobs
   # TODO: test with channel failure e.g out_of_connections
   # TODO: test error publishing job
 end
