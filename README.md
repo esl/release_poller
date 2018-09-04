@@ -22,6 +22,79 @@ $> docker stop roger_rabbit
 $> docker container rm roger_rabbit
 ```
 
+# Jobs Poller
+
+## Config
+
+```ex
+# Repo Poller Config
+
+config :repo_poller, :repos, [
+  # {REPO_TO_POLL, HOW_TO_POLL, POLL_INTERVAL (seconds), [TASKS]}
+  # TASKS: [
+  #   url: TASK_TO_FETCH, # required
+  #   runner: Make,
+  #   source: Github,
+  #   commands: []
+  # ]
+  {"https://github.com/erlang/otp", RepoPoller.Repository.Github, 3600,
+   [
+     [url: "https://github.com/DeadZen/goldrush", commands: ["all"]],
+     [url: "https://github.com/emqtt/emqttd", commands: ["app", "rel"]]
+   ]}
+]
+
+# RabbitMQ Connection Config
+
+config :repo_poller, :rabbitmq_config,
+  host: "localhost",
+  port: 5672,
+  channels: 1000,
+  queue: QUEUE_NAME, # required
+  exchange: "",
+  reconnect: 1000,
+  password: "guest",
+  username: "guest"
+
+# RabbitMQ Connection Pool Config
+
+config :repo_poller, :rabbitmq_conn_pool,
+  pool_id: POOL_NAME, # required
+  name: {:local, POOL_NAME}, # required
+  worker_module: BugsBunny.Worker.RabbitConnection,
+  size: 2,
+  max_overflow: 0
+```
+
+# Repo Jobs
+
+```ex
+# Repo Poller Config
+
+config :repo_jobs, :consumers, NUMBER_OF_CONSUMERS # required
+
+# RabbitMQ Connection Config
+
+config :repo_jobs, :rabbitmq_config,
+  host: "localhost",
+  port: 5672,
+  channels: 1000,
+  queue: QUEUE_NAME, # required
+  exchange: "",
+  reconnect: 1000,
+  password: "guest",
+  username: "guest"
+
+# RabbitMQ Connection Pool Config
+
+config :repo_jobs, :rabbitmq_conn_pool,
+  pool_id: POOL_NAME, # required
+  name: {:local, POOL_NAME}, # required
+  worker_module: BugsBunny.Worker.RabbitConnection,
+  size: 2,
+  max_overflow: 0
+```
+
 ## Setup releases
 
 ```bash
