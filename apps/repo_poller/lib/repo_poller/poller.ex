@@ -91,8 +91,8 @@ defmodule RepoPoller.Poller do
             if caller, do: send(caller, res)
             {:noreply, new_state}
 
-          {:error, reason} ->
-            if caller, do: send(caller, reason)
+          {:error, reason} = error ->
+            if caller, do: send(caller, error)
             {:stop, reason, state}
         end
 
@@ -157,7 +157,10 @@ defmodule RepoPoller.Poller do
         ) :: {:ok, State.t()} | {:error, :out_of_retries}
   defp do_with_channel({:error, reason}, state, repo, new_tags, retries) do
     Logger.error("error getting a channel reason: #{reason}")
-    :timer.sleep(5_000)
+
+    Config.get_rabbitmq_reconnection_interval()
+    |> :timer.sleep()
+
     schedule_jobs(state, repo, new_tags, retries - 1)
   end
 
@@ -174,6 +177,7 @@ defmodule RepoPoller.Poller do
         {:error, reason} ->
           # TODO: handle publish errors e.g maybe remove tag from new_tags so it can be re-scheduled later
           Logger.error("error publishing new release for #{owner}/#{name} reason: #{reason}")
+          if caller, do: send(caller, {:job_not_published, job_payload})
 
           :ok
 

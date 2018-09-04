@@ -35,6 +35,11 @@ defmodule RepoPoller.Config do
     |> Keyword.get(:client, BugsBunny.RabbitMQ)
   end
 
+  def get_rabbitmq_reconnection_interval() do
+    get_rabbitmq_config()
+    |> Keyword.get(:reconnect, 5000)
+  end
+
   def get_db_name() do
     Application.get_env(:repo_poller, :db_name) || System.get_env("DB_NAME") || "releases.tab"
   end

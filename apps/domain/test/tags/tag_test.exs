@@ -40,6 +40,7 @@ defmodule Domain.Tags.TagTest do
       %Tag{name: "v1.6.0-rc.1"},
       %Tag{name: "v1.6.0-rc.0"}
     ]
+
     # with version 1.7.*
     new = [
       %Tag{name: "v1.7.2"},
@@ -57,13 +58,14 @@ defmodule Domain.Tags.TagTest do
       %Tag{name: "v1.6.0-rc.1"},
       %Tag{name: "v1.6.0-rc.0"}
     ]
+
     assert Tag.new_tags(old, new) == [
-      %Tag{name: "v1.7.2"},
-      %Tag{name: "v1.7.1"},
-      %Tag{name: "v1.7.0"},
-      %Tag{name: "v1.7.0-rc.1"},
-      %Tag{name: "v1.7.0-rc.0"}
-    ]
+             %Tag{name: "v1.7.2"},
+             %Tag{name: "v1.7.1"},
+             %Tag{name: "v1.7.0"},
+             %Tag{name: "v1.7.0-rc.1"},
+             %Tag{name: "v1.7.0-rc.0"}
+           ]
   end
 
   test "hasn't new tags - with tags" do
@@ -84,6 +86,7 @@ defmodule Domain.Tags.TagTest do
       %Tag{name: "v1.6.0-rc.1"},
       %Tag{name: "v1.6.0-rc.0"}
     ]
+
     # with version 1.7.*
     new = [
       %Tag{name: "v1.7.2"},
@@ -101,6 +104,7 @@ defmodule Domain.Tags.TagTest do
       %Tag{name: "v1.6.0-rc.1"},
       %Tag{name: "v1.6.0-rc.0"}
     ]
+
     assert Tag.new_tags(old, new) == []
   end
 

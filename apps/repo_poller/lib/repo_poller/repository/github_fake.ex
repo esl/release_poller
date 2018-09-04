@@ -248,7 +248,7 @@ defmodule RepoPoller.Repository.GithubFake do
   end
 
   def get_tags(%{owner: "2-new-tags"}) do
-    {:ok,  Enum.take(@new_tags, 2)}
+    {:ok, Enum.take(@new_tags, 2)}
   end
 
   def get_tags(%{owner: "new-tag"}) do

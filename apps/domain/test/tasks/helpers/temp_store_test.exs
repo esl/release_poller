@@ -32,7 +32,8 @@ defmodule Domain.Tasks.Helpers.TempStoreTest do
     end
 
     test "returns error tuple is there was an error" do
-      base_dir = "/" # root
+      # root
+      base_dir = "/"
       assert {:error, :eacces} = TempStore.create_tmp_dir(["not_allowed"], base_dir)
     end
   end

@@ -141,7 +141,10 @@ defmodule RepoJobs.Consumer do
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
     Logger.error("[consumer] error getting channel reason: #{inspect(reason)}")
-    :timer.sleep(1000)
+
+    Config.get_rabbitmq_reconnection_interval()
+    |> :timer.sleep()
+
     schedule_connect()
     {:noreply, state}
   end

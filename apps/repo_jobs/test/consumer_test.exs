@@ -17,7 +17,8 @@ defmodule RepoJobs.ConsumerTest do
       queue: "test.queue",
       exchange: "",
       client: FakeRabbitMQ,
-      caller: caller
+      caller: caller,
+      reconnect: 10
     ]
 
     rabbitmq_conn_pool = [
@@ -82,5 +83,21 @@ defmodule RepoJobs.ConsumerTest do
     :ok = :poolboy.checkin(pool_id, conn_worker)
     assert %{channels: [], monitors: [monitor]} = RabbitConnection.state(conn_worker)
     assert {_ref, ^channel} = monitor
+  end
+
+  test "handles errors when trying to get a channel", %{pool_id: pool_id} do
+    conn_worker = BugsBunny.get_connection_worker(pool_id)
+    {:ok, channel} = BugsBunny.checkout_channel(conn_worker)
+
+    log =
+      capture_log(fn ->
+        pid = start_supervised!({Consumer, pool_id})
+        :timer.sleep(20)
+        BugsBunny.checkin_channel(conn_worker, channel)
+        :timer.sleep(20)
+        assert %{channel: ^channel} = Consumer.state(pid)
+      end)
+
+    assert log =~ "[consumer] error getting channel reason: :out_of_channels"
   end
 end

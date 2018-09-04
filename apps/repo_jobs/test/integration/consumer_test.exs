@@ -271,6 +271,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       assert log =~
                "[error] error running task https://github.com/f@k31/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
+
       assert log =~
                "[error] error running task https://github.com/f@k32/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
     end

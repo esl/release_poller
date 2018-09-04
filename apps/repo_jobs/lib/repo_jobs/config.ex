@@ -34,4 +34,9 @@ defmodule RepoJobs.Config do
     get_rabbitmq_config()
     |> Keyword.get(:client, BugsBunny.RabbitMQ)
   end
+
+  def get_rabbitmq_reconnection_interval() do
+    get_rabbitmq_config()
+    |> Keyword.get(:reconnect, 5000)
+  end
 end

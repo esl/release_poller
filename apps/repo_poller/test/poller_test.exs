@@ -30,7 +30,8 @@ defmodule RepoPoller.PollerTest do
       queue: "new_releases.queue",
       exchange: "",
       client: FakeRabbitMQ,
-      caller: caller
+      caller: caller,
+      reconnect: 10
     ]
 
     rabbitmq_conn_pool = [
@@ -226,6 +227,31 @@ defmodule RepoPoller.PollerTest do
            end) =~ "error polling info for repo: fake reason: :not_found"
   end
 
-  # TODO: test with channel failure e.g out_of_connections
-  # TODO: test error publishing job
+  test "handles errors when trying to get a channel", %{pool_id: pool_id} do
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+
+    BugsBunny.with_channel(pool_id, fn {:ok, _channel} ->
+      log =
+        capture_log(fn ->
+          Poller.poll(pid)
+          assert_receive {:error, :out_of_retries}
+          :timer.sleep(100)
+          refute Process.alive?(pid)
+        end)
+
+      assert log =~ "error getting a channel reason: out_of_channels"
+    end)
+  end
+
+  test "handles errors when publishing a job fails", %{pool_id: pool_id} do
+    repo = Repo.new("https://github.com/error/fake")
+
+    assert capture_log(fn ->
+             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+             Poller.poll(pid)
+             assert_receive {:job_not_published, _}
+             refute_receive {:job_published, _}
+           end) =~ "error publishing new release for error/fake reason: kaboom"
+  end
 end

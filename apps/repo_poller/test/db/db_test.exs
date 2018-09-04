@@ -83,6 +83,7 @@ defmodule ReleasePoller.DBTest do
       for repo <- repos do
         assert :ok = DB.save(repo)
       end
+
       :ok
     end
 
