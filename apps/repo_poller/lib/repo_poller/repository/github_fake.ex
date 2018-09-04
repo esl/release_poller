@@ -238,7 +238,7 @@ defmodule RepoPoller.Repository.GithubFake do
     }
   ]
   @spec get_tags(Repo.t()) ::
-          {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, map()}
+          {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, any()}
   def get_tags(%{owner: "rate-limit"}) do
     {:error, :rate_limit, 50}
   end

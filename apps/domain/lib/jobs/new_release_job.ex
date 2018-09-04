@@ -11,7 +11,7 @@ defmodule Domain.Jobs.NewReleaseJob do
         }
   defstruct repo: nil, new_tag: nil
 
-  @spec new(Repo.t(), Tag.t() | nonempty_list(Tag.t())) :: NewReleaseJob.t()
+  @spec new(Repo.t(), nonempty_list(Tag.t())) :: list(NewReleaseJob.t())
   def new(repo, tags) when is_list(tags) do
     Enum.map(tags, &new(repo, &1))
   end

@@ -7,8 +7,19 @@ defmodule RepoJobs.Consumer do
   alias RepoJobs.{Config, JobRunner}
 
   defmodule State do
+    @moduledoc """
+    RabbitMQ Consumer Worker State.
+
+    State attributes:
+
+      * `:pool_id` - the name of the connection pool to RabbitMQ
+      * `:channel` - the RabbitMQ channel for consuming new messages
+      * `:monitor` - a monitor for handling channel crashes
+      * `:consumer_tag` - the consumer tag assigned by RabbitMQ
+    """
     @enforce_keys [:pool_id]
 
+    @typedoc "Consumer State Type"
     @type t :: %__MODULE__{
             pool_id: atom(),
             caller: pid(),

@@ -1,6 +1,6 @@
 defmodule RepoPoller.Config do
   def get_github_access_token() do
-    Application.get_env(:repo_poller, :github_auth) || System.get_env("GITHUB_AUTH")
+    Application.get_env(:repo_poller, :github_auth, System.get_env("GITHUB_AUTH"))
   end
 
   def get_repos() do

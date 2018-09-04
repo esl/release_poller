@@ -2,9 +2,14 @@ defmodule RepoJobs.JobRunner do
   require Logger
 
   alias Domain.Tasks.Helpers.TempStore
+  alias Domain.Jobs.NewReleaseJob
+  alias Domain.Tasks.Task
+
   @tmp_dir System.tmp_dir!()
 
-  def run(repo, tmp_dir \\ @tmp_dir)
+  @spec run(NewReleaseJob.t(), Path.t()) :: list(result)
+        when result: {:ok, Task.t()} | {:error, any()}
+  def run(job, tmp_dir \\ @tmp_dir)
   def run(%{repo: %{tasks: []}}, _tmp_dir), do: []
 
   def run(job, tmp_dir) do
