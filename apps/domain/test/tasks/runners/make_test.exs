@@ -8,122 +8,118 @@ defmodule Domain.Tasks.Runners.MakeTest do
 
   @moduletag :integration
 
-  @base_dir Path.join([System.cwd!(), "test", "fixtures", "runners"])
-
   setup do
+    n = :rand.uniform(100)
+    # create random directory so it can run concurrently
+    base_dir = Path.join([System.cwd!(), "test", "fixtures", "runners", to_string(n)])
+    File.mkdir_p!(base_dir)
+
     on_exit(fn ->
-      in_fixture(fn -> File.rm_rf!("Makefile") end)
+      File.rm_rf!(base_dir)
     end)
 
-    :ok
+    {:ok, base_dir: base_dir}
   end
 
-  test "runs default Makefile command" do
-    in_fixture(fn ->
-      File.write!("Makefile", """
-      target:
-      \t@echo "hello"
-      """)
+  test "runs default Makefile command", %{base_dir: base_dir} do
+    Path.join([base_dir, "Makefile"])
+    |> File.write!("""
+    target:
+    \t@echo "hello"
+    """)
 
-      task = %Task{path: @base_dir}
+    task = %Task{path: base_dir}
 
-      output =
-        capture_io(fn ->
-          assert :ok = Make.exec(task, [])
-        end)
+    output =
+      capture_io(fn ->
+        assert :ok = Make.exec(task, [])
+      end)
 
-      assert output =~ "hello"
-    end)
+    assert output =~ "hello"
   end
 
-  test "runs custom Makefile command" do
-    in_fixture(fn ->
-      File.write!("Makefile", """
-      target:
-      \t@echo "target"
-      build:
-      \t@echo "build"
-      """)
+  test "runs custom Makefile command", %{base_dir: base_dir} do
+    Path.join([base_dir, "Makefile"])
+    |> File.write!("""
+    target:
+    \t@echo "target"
+    build:
+    \t@echo "build"
+    """)
 
-      task = %Task{path: @base_dir, commands: ["build"]}
+    task = %Task{path: base_dir, commands: ["build"]}
 
-      output =
-        capture_io(fn ->
-          assert :ok = Make.exec(task, [])
-        end)
+    output =
+      capture_io(fn ->
+        assert :ok = Make.exec(task, [])
+      end)
 
-      assert output =~ "build"
-    end)
+    assert output =~ "build"
   end
 
-  test "run multiple Makefile commands" do
-    in_fixture(fn ->
-      File.write!("Makefile", """
-      target:
-      \t@echo "target"
-      build:
-      \t@echo "build"
-      release:
-      \t@echo "release done"
-      """)
+  test "run multiple Makefile commands", %{base_dir: base_dir} do
+    Path.join([base_dir, "Makefile"])
+    |> File.write!("""
+    target:
+    \t@echo "target"
+    build:
+    \t@echo "build"
+    release:
+    \t@echo "release done"
+    """)
 
-      task = %Task{path: @base_dir, commands: ["build", "release"]}
+    task = %Task{path: base_dir, commands: ["build", "release"]}
 
-      output =
-        capture_io(fn ->
-          assert :ok = Make.exec(task, [])
-        end)
+    output =
+      capture_io(fn ->
+        assert :ok = Make.exec(task, [])
+      end)
 
-      assert output =~ "build"
-      assert output =~ "release done"
-    end)
+    assert output =~ "build"
+    assert output =~ "release done"
   end
 
-  test "return error tupe if there was an error in default command" do
-    in_fixture(fn ->
-      File.write!("Makefile", """
-      target:
-      \t$(error something went wrong)
-      """)
+  test "return error tupe if there was an error in default command", %{base_dir: base_dir} do
+    Path.join([base_dir, "Makefile"])
+    |> File.write!("""
+    target:
+    \t$(error something went wrong)
+    """)
 
-      task = %Task{path: @base_dir}
+    task = %Task{path: base_dir}
 
-      output =
-        capture_io(fn ->
-          assert {:error, error} = Make.exec(task, [])
-          assert {_, 2} = error
-        end)
+    output =
+      capture_io(fn ->
+        assert {:error, error} = Make.exec(task, [])
+        assert {_, 2} = error
+      end)
 
-      assert output =~ "something went wrong"
-    end)
+    assert output =~ "something went wrong"
   end
 
-  test "return error tupe if there was an error in one of multiple commands" do
-    in_fixture(fn ->
-      File.write!("Makefile", """
-      build:
-      \t@echo "build project"
-      release:
-      \t$(error something went wrong)
-      deploy:
-      \t@echo "deploy to production"
-      """)
+  test "return error tupe if there was an error in one of multiple commands", %{
+    base_dir: base_dir
+  } do
+    Path.join([base_dir, "Makefile"])
+    |> File.write!("""
+    build:
+    \t@echo "build project"
+    release:
+    \t$(error something went wrong)
+    deploy:
+    \t@echo "deploy to production"
+    """)
 
-      task = %Task{path: @base_dir, commands: ["build", "release", "deploy"]}
+    task = %Task{path: base_dir, commands: ["build", "release", "deploy"]}
 
-      output =
-        capture_io(fn ->
-          assert {:error, error} = Make.exec(task, [])
-          assert {_, 2} = error
-        end)
+    output =
+      capture_io(fn ->
+        assert {:error, error} = Make.exec(task, [])
+        assert {_, 2} = error
+      end)
 
-      assert output =~ "build project"
-      assert output =~ "something went wrong"
-      refute output =~ "deploy to production"
-    end)
-  end
-
-  defp in_fixture(fun) do
-    File.cd!(@base_dir, fun)
+    assert output =~ "build project"
+    assert output =~ "something went wrong"
+    refute output =~ "deploy to production"
   end
 end
