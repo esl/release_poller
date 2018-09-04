@@ -40,8 +40,8 @@ defmodule RepoPoller.Repository.Github do
       rate_limit_reset = String.to_integer(rate_limit_reset, 10)
       rate_limit_reset_dt = DateTime.from_unix!(rate_limit_reset)
       now = DateTime.utc_now()
-      retry_in_seconds = DateTime.diff(rate_limit_reset_dt, now)
-      {:error, :rate_limit, retry_in_seconds}
+      retry_in_milli_seconds = DateTime.diff(rate_limit_reset_dt, now) * 1000
+      {:error, :rate_limit, retry_in_milli_seconds}
     end
   end
 
