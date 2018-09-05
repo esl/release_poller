@@ -68,14 +68,9 @@ defmodule Domain.Tags.TagTest do
            ]
   end
 
-  test "hasn't new tags - with tags" do
+  test "hasn new tags - unsorted tags" do
     # no version 1.7.*
     old = [
-      %Tag{name: "v1.7.2"},
-      %Tag{name: "v1.7.1"},
-      %Tag{name: "v1.7.0"},
-      %Tag{name: "v1.7.0-rc.1"},
-      %Tag{name: "v1.7.0-rc.0"},
       %Tag{name: "v1.6.6"},
       %Tag{name: "v1.6.5"},
       %Tag{name: "v1.6.4"},
@@ -105,14 +100,93 @@ defmodule Domain.Tags.TagTest do
       %Tag{name: "v1.6.0-rc.0"}
     ]
 
+    new_tags = Tag.new_tags(Enum.shuffle(old), Enum.shuffle(new))
+    assert Enum.member?(new_tags, %Tag{name: "v1.7.2"})
+    assert Enum.member?(new_tags, %Tag{name: "v1.7.1"})
+    assert Enum.member?(new_tags, %Tag{name: "v1.7.0"})
+    assert Enum.member?(new_tags, %Tag{name: "v1.7.0-rc.1"})
+    assert Enum.member?(new_tags, %Tag{name: "v1.7.0-rc.0"})
+  end
+
+  test "hasn't new tags - with tags" do
+    old = [
+      %Tag{name: "v1.7.2"},
+      %Tag{name: "v1.7.1"},
+      %Tag{name: "v1.7.0"},
+      %Tag{name: "v1.7.0-rc.1"},
+      %Tag{name: "v1.7.0-rc.0"},
+      %Tag{name: "v1.6.6"},
+      %Tag{name: "v1.6.5"},
+      %Tag{name: "v1.6.4"},
+      %Tag{name: "v1.6.3"},
+      %Tag{name: "v1.6.2"},
+      %Tag{name: "v1.6.1"},
+      %Tag{name: "v1.6.0"},
+      %Tag{name: "v1.6.0-rc.1"},
+      %Tag{name: "v1.6.0-rc.0"}
+    ]
+
+    new = [
+      %Tag{name: "v1.7.2"},
+      %Tag{name: "v1.7.1"},
+      %Tag{name: "v1.7.0"},
+      %Tag{name: "v1.7.0-rc.1"},
+      %Tag{name: "v1.7.0-rc.0"},
+      %Tag{name: "v1.6.6"},
+      %Tag{name: "v1.6.5"},
+      %Tag{name: "v1.6.4"},
+      %Tag{name: "v1.6.3"},
+      %Tag{name: "v1.6.2"},
+      %Tag{name: "v1.6.1"},
+      %Tag{name: "v1.6.0"},
+      %Tag{name: "v1.6.0-rc.1"},
+      %Tag{name: "v1.6.0-rc.0"}
+    ]
+
     assert Tag.new_tags(old, new) == []
   end
 
   test "hasn't new tags - without tags" do
-    # no version 1.7.*
     old = []
-    # with version 1.7.*
     new = []
     assert Tag.new_tags(old, new) == []
+  end
+
+  test "hasn't new tags - unsorted tags" do
+    old = [
+      %Tag{name: "v1.7.2"},
+      %Tag{name: "v1.7.1"},
+      %Tag{name: "v1.7.0"},
+      %Tag{name: "v1.7.0-rc.1"},
+      %Tag{name: "v1.7.0-rc.0"},
+      %Tag{name: "v1.6.6"},
+      %Tag{name: "v1.6.5"},
+      %Tag{name: "v1.6.4"},
+      %Tag{name: "v1.6.3"},
+      %Tag{name: "v1.6.2"},
+      %Tag{name: "v1.6.1"},
+      %Tag{name: "v1.6.0"},
+      %Tag{name: "v1.6.0-rc.1"},
+      %Tag{name: "v1.6.0-rc.0"}
+    ]
+
+    new = [
+      %Tag{name: "v1.7.2"},
+      %Tag{name: "v1.7.1"},
+      %Tag{name: "v1.7.0"},
+      %Tag{name: "v1.7.0-rc.1"},
+      %Tag{name: "v1.7.0-rc.0"},
+      %Tag{name: "v1.6.6"},
+      %Tag{name: "v1.6.5"},
+      %Tag{name: "v1.6.4"},
+      %Tag{name: "v1.6.3"},
+      %Tag{name: "v1.6.2"},
+      %Tag{name: "v1.6.1"},
+      %Tag{name: "v1.6.0"},
+      %Tag{name: "v1.6.0-rc.1"},
+      %Tag{name: "v1.6.0-rc.0"}
+    ]
+
+    assert Tag.new_tags(Enum.shuffle(old), Enum.shuffle(new)) == []
   end
 end

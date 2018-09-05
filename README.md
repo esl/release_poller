@@ -129,7 +129,11 @@ config :repo_jobs, :rabbitmq_conn_pool,
 ```bash
 # Release the repo_jobs app along its dependencies
 MIX_ENV=prod mix release --name=jobs
+# run the release
+_build/prod/rel/jobs/bin/jobs foreground
 
 # Release the repo_poller app along its dependencies
 MIX_ENV=prod mix release --name=poller
+# run the release
+_build/prod/rel/poller/bin/poller foreground
 ```
