@@ -57,6 +57,26 @@ defmodule Domain.Serializers.NewReleaseJobSerializer.Test do
     assert decoded_job == job
   end
 
+  test "deserialize task env properly", %{repo: repo, tag: tag} do
+    task = %Task{
+      url: "https://github.com/f@k31/fake",
+      env: [{"KEY1", "VALUE1"}, {"KEY2", "VALUE2"}]
+    }
+
+    job =
+      repo
+      |> Repo.set_tasks([task])
+      |> NewReleaseJob.new(tag)
+
+    new_job =
+      JobSerializer.serialize!(job)
+      |> JobSerializer.deserialize!()
+
+    assert new_job == job
+    %{repo: %{tasks: [new_task]}} = new_job
+    assert new_task.env == task.env
+  end
+
   # converts stringified modules into modules again
   test "deserialize properly a task module adapters", %{repo: repo, tag: tag} do
     task = %Task{url: "https://github.com/f@k31/fake"}

@@ -45,11 +45,18 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
 
     tasks =
       tasks
-      |> Enum.map(fn %{runner: runner, source: source} = task ->
+      |> Enum.map(fn %{runner: runner, source: source, env: env_list} = task ->
         # runner and source cames as stringified atoms "Elixir.Domain.Tasks.Runners.Make"
         runner_module = Module.concat([runner])
         source_module = Module.concat([source])
-        %{task | runner: runner_module, source: source_module}
+
+        env =
+          env_list
+          |> Enum.map(fn [key, value] ->
+            {key, value}
+          end)
+
+        %{task | runner: runner_module, source: source_module, env: env}
       end)
 
     %{job | repo: %{repo | tasks: tasks}}

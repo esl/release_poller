@@ -6,6 +6,7 @@ use Mix.Config
 #    [
 #      [url: "https://github.com/DeadZen/goldrush", commands: ["all"]],
 #      [url: "https://github.com/emqtt/emqttd", commands: ["app", "rel"]]
+#      [url: "https://github.com/sescobb27/elixir-docker-guide", commands: ["docker-push"]]
 #    ]}
 # ]
 

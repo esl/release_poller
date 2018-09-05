@@ -95,6 +95,8 @@ config :repo_poller, :rabbitmq_conn_pool,
 
 # Repo Jobs
 
+it needs a list of pre-installed packages with its associated dependencies: [git, make]
+
 ```ex
 # Repo Poller Config
 

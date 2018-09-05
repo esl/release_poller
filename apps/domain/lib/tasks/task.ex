@@ -10,7 +10,7 @@ defmodule Domain.Tasks.Task do
   @type t :: %__MODULE__{
           url: String.t(),
           path: Path.t(),
-          env: keyword(),
+          env: list(),
           commands: list(String.t()),
           runner: runner(),
           source: source()
