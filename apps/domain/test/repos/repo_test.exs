@@ -37,4 +37,9 @@ defmodule Domain.Repos.RepoTest do
              Repo.new("https://github.com/jeremyjh/dialyxir")
              |> Repo.set_tasks(tasks)
   end
+
+  test "uniqe names" do
+    assert Repo.new("https://github.com/jeremyjh/dialyxir")
+           |> Repo.uniq_name() == "jeremyjh/dialyxir"
+  end
 end

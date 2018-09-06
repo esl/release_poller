@@ -79,8 +79,7 @@ defmodule RepoPoller.Poller do
         :poll,
         %{repo: repo, adapter: adapter, interval: interval, caller: caller} = state
       ) do
-    %{name: repo_name} = repo
-
+    repo_name = Repo.uniq_name(repo)
     Logger.info("polling info for repo: #{repo_name}")
 
     case Service.get_tags(adapter, repo) do
@@ -127,15 +126,23 @@ defmodule RepoPoller.Poller do
   @spec update_repo_tags(Repo.t(), list(Tag.t()), State.t()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
   defp update_repo_tags(repo, tags, state) do
-    repo
-    |> DB.get_tags()
-    |> Tag.new_tags(tags)
-    |> case do
-      [] ->
-        {:ok, state}
+    repo_name = Repo.uniq_name(repo)
 
-      new_tags ->
-        schedule_jobs(state, repo, new_tags)
+    case DB.get_repo(repo) do
+      nil ->
+        Logger.info("scheduling jobs for new repo #{repo_name}")
+        schedule_jobs(state, repo, tags)
+
+      db_repo ->
+        case Tag.new_tags(db_repo.tags, tags) do
+          [] ->
+            Logger.info("no new tags for #{repo_name}")
+            {:ok, state}
+
+          new_tags ->
+            Logger.info("scheduling jobs for #{repo_name}")
+            schedule_jobs(state, db_repo, new_tags)
+        end
     end
   end
 
@@ -165,10 +172,9 @@ defmodule RepoPoller.Poller do
   end
 
   defp do_with_channel({:ok, channel}, %{caller: caller} = state, repo, new_tags, _retries) do
-    %{owner: owner, name: name} = repo
-
+    repo_name = Repo.uniq_name(repo)
     jobs = NewReleaseJob.new(repo, new_tags)
-    Logger.info("publishing #{length(jobs)} releases for #{owner}/#{name}")
+    Logger.info("publishing #{length(jobs)} releases for #{repo_name}")
 
     for job <- jobs do
       job_payload = NewReleaseJobSerializer.serialize!(job)
@@ -176,7 +182,7 @@ defmodule RepoPoller.Poller do
       case publish_job(channel, job_payload) do
         {:error, reason} ->
           # TODO: handle publish errors e.g maybe remove tag from new_tags so it can be re-scheduled later
-          Logger.error("error publishing new release for #{owner}/#{name} reason: #{reason}")
+          Logger.error("error publishing new release for #{repo_name} reason: #{reason}")
           if caller, do: send(caller, {:job_not_published, job_payload})
 
           :ok
@@ -187,9 +193,13 @@ defmodule RepoPoller.Poller do
       end
     end
 
-    new_repo = Repo.add_tags(repo, new_tags)
-    :ok = DB.save(new_repo)
-    {:ok, %State{state | repo: new_repo}}
+    :ok =
+      Repo.add_tags(repo, new_tags)
+      |> DB.save()
+
+    Logger.info("success publishing releases for #{repo_name}")
+
+    {:ok, state}
   end
 
   @spec publish_job(AMQP.Channel.t(), String.t() | iodata()) :: :ok | AMQP.Basic.error()

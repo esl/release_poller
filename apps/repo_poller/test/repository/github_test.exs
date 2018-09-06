@@ -98,6 +98,7 @@ defmodule RepoPoller.Api.GithubTest do
     repo: repo
   } do
     error = %HTTPoison.Error{id: nil, reason: :timeout}
+
     lambda_list = fn _, _, _ ->
       raise error
     end

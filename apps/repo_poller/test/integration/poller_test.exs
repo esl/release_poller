@@ -68,8 +68,8 @@ defmodule RepoPoller.Integration.PollerTest do
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 10_000}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
-    tags = DB.get_tags(repo)
-    refute Enum.empty?(tags)
+    db_repo = DB.get_repo(repo)
+    refute Enum.empty?(db_repo.tags)
 
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       {:ok, consumer_tag} = Basic.consume(channel, @queue)
@@ -205,7 +205,7 @@ defmodule RepoPoller.Integration.PollerTest do
                }
              } = job
 
-      tags = DB.get_tags(repo)
+      %{tags: tags} = DB.get_repo(repo)
       assert tags == [new_tag, tag]
     end)
   end

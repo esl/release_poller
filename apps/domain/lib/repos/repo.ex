@@ -36,4 +36,8 @@ defmodule Domain.Repos.Repo do
   def set_tasks(repo, tasks) do
     %Repo{repo | tasks: tasks}
   end
+
+  def uniq_name(%{owner: owner, name: name}) do
+    "#{owner}/#{name}"
+  end
 end

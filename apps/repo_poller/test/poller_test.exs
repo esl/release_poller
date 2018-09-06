@@ -72,10 +72,8 @@ defmodule RepoPoller.PollerTest do
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
-    tags = DB.get_tags(repo)
-    refute Enum.empty?(tags)
-    %{repo: %{tags: state_tags}} = Poller.state(pid)
-    assert state_tags == tags
+    %{tags: tags} = DB.get_repo(repo)
+    assert length(tags) == 21
   end
 
   test "gets repo tags and update them", %{pool_id: pool_id} do
@@ -188,11 +186,9 @@ defmodule RepoPoller.PollerTest do
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
 
-    tags = DB.get_tags(repo)
+    %{tags: tags} = DB.get_repo(repo)
 
     assert length(tags) == 21
-    %{repo: %{tags: state_tags}} = Poller.state(pid)
-    assert state_tags == tags
   end
 
   test "handles rate limit errors", %{pool_id: pool_id} do
@@ -203,7 +199,7 @@ defmodule RepoPoller.PollerTest do
              Poller.poll(pid)
              assert_receive {:error, :rate_limit, retry}
              assert retry > 0
-           end) =~ "rate limit reached for repo: fake retrying in 50 ms"
+           end) =~ "rate limit reached for repo: rate-limit/fake retrying in 50 ms"
   end
 
   test "re-schedule poll after rate limit errors", %{pool_id: pool_id} do
@@ -214,7 +210,7 @@ defmodule RepoPoller.PollerTest do
              Poller.poll(pid)
              assert_receive {:error, :rate_limit, retry}
              assert_receive {:error, :rate_limit, ^retry}
-           end) =~ "rate limit reached for repo: fake retrying in 50 ms"
+           end) =~ "rate limit reached for repo: rate-limit/fake retrying in 50 ms"
   end
 
   test "handles errors when polling fails due to a custom error", %{pool_id: pool_id} do
@@ -224,7 +220,7 @@ defmodule RepoPoller.PollerTest do
              pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
              Poller.poll(pid)
              assert_receive {:error, :not_found}
-           end) =~ "error polling info for repo: fake reason: :not_found"
+           end) =~ "error polling info for repo: 404/fake reason: :not_found"
   end
 
   test "handles errors when trying to get a channel", %{pool_id: pool_id} do
