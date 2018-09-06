@@ -94,6 +94,19 @@ defmodule RepoPoller.Api.GithubTest do
     end
   end
 
+  test "returns error tuple when posion raises and exception", %{
+    repo: repo
+  } do
+    error = %HTTPoison.Error{id: nil, reason: :timeout}
+    lambda_list = fn _, _, _ ->
+      raise error
+    end
+
+    with_mock Tags, list: lambda_list do
+      assert {:error, ^error} = Github.get_tags(repo)
+    end
+  end
+
   test "returns error tuple when forbidden to fetch tags with a different reason than rate limiting",
        %{repo: repo} do
     payload_response = %{

@@ -28,9 +28,17 @@ defmodule RepoPoller.Repository.Github do
   @spec get_tags(Repo.t()) ::
           {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, map()}
   def get_tags(%{owner: owner, name: name}) do
-    new()
-    |> Tags.list(owner, name)
-    |> handle_tags_reponse()
+    try do
+      new()
+      |> Tags.list(owner, name)
+      |> handle_tags_reponse()
+    rescue
+      # Tentacat uses poison `request!` method so it blows up on any kind of
+      # error e.g connection timeout, and this should not crash any process,
+      # so we need to rescue exceptions and return an error tuple
+      error in HTTPoison.Error ->
+        {:error, error}
+    end
   end
 
   # TODO: FIX specs fo this function
