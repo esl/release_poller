@@ -1,4 +1,4 @@
-defmodule RepoPoller.Api.GithubTest do
+defmodule RepoPoller.Api.ServiceTest do
   use ExUnit.Case
   import Mock
 
