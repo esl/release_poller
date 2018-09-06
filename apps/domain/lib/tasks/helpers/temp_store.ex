@@ -1,4 +1,8 @@
 defmodule Domain.Tasks.Helpers.TempStore do
+  @moduledoc """
+  A set of functions for helping store and generate path for tasks to be
+  executed and stores in the $TMP directory depending on the OS
+  """
   @spec create_tmp_dir(list(String.t()), Path.t()) ::
           {:ok, Path.t()} | {:error, File.posix()} | no_return()
   def create_tmp_dir(parts, tmp_dir) when is_list(parts) do

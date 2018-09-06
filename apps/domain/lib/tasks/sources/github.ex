@@ -4,6 +4,16 @@ defmodule Domain.Tasks.Sources.Github do
 
   alias Domain.Tasks.Helpers.TempStore
 
+  @doc """
+  Clones a repository from the given URL and stores it in the given `base_dir`ectory.
+  The destination path is computed in the following way:
+
+      with an `url` "https://github.com/elixir-lang/elixir" and a
+      `base_dir` "/tmp", it is going to store the cloned repo into "/tmp/elixir-lang/elixir"
+
+  If there is an existing directory there, it is going to remove it first so when
+  cloning, it don't fails with `already exists and is not an empty directory.`
+  """
   @impl true
   def fetch(%{url: url} = task, base_dir) do
     # url: https://github.com/elixir-lang/elixir

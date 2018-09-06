@@ -5,6 +5,16 @@ defmodule Domain.Tasks.Runners.Make do
 
   @filename "Makefile"
 
+  @doc """
+  Executes the given task via `make`, if the task has a non empty list of commands
+  it will run each command secuentialy, and will stop if there is an error in
+  one of them, returning an error tuple:
+
+      make -f Makefile install
+      make -f Makefile build
+      make -f Makefile release
+      make -f Makefile deploy
+  """
   @impl true
   def exec(task, env) do
     try do
