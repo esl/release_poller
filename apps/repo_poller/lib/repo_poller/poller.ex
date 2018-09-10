@@ -123,6 +123,9 @@ defmodule RepoPoller.Poller do
     Process.send_after(self(), :poll, interval)
   end
 
+  # Fetch a repo from the DB, if it doesn't exists, schedule all the fetched tags
+  # as jobs, else if it already exists, compare its old tags with the fetched tags
+  # and if there are new tags schedule them as jobs
   @spec update_repo_tags(Repo.t(), list(Tag.t()), State.t()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
   defp update_repo_tags(repo, tags, state) do
@@ -146,6 +149,7 @@ defmodule RepoPoller.Poller do
     end
   end
 
+  # Try to pick a channel to RabbitMQ and schedule a job up to 5 times
   @spec schedule_jobs(State.t(), Repo.t(), list(Tag.t()), non_neg_integer()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
   defp schedule_jobs(state, repo, new_tags, retries \\ 5)
@@ -155,6 +159,7 @@ defmodule RepoPoller.Poller do
     BugsBunny.with_channel(pool_id, &do_with_channel(&1, state, repo, new_tags, retries))
   end
 
+  # On channel checkout error retry up to 5 times
   @spec do_with_channel(
           {:ok, AMQP.Channel.t()} | {:error, :disconected | :out_of_channels},
           State.t(),
@@ -171,6 +176,8 @@ defmodule RepoPoller.Poller do
     schedule_jobs(state, repo, new_tags, retries - 1)
   end
 
+  # On channel checkout success creates a job per each new repo tag, publish it
+  # to RabbitMQ and store the `repo` to the `DB` with all its tags
   defp do_with_channel({:ok, channel}, %{caller: caller} = state, repo, new_tags, _retries) do
     repo_name = Repo.uniq_name(repo)
     jobs = NewReleaseJob.new(repo, new_tags)

@@ -95,6 +95,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:reply, {:error, :out_of_channels}, state}
   end
 
+  # Checkout a channel out of a channel pool and monitors the client requesting
+  # it so we can handle client crashes returning the monitor back to the pool
   @impl true
   def handle_call(
         :checkout_channel,
@@ -112,6 +114,8 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:reply, state, state}
   end
 
+  # Puts back a channel into the channel pool, demonitors the client that was
+  # holding it and deletes the monitor from the monitors list
   @impl true
   def handle_cast({:checkin_channel, channel}, %{channels: channels, monitors: monitors} = state) do
     monitors
@@ -227,11 +231,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # Internals #
   #############
 
-  # TODO: FIX spec, don't know why is failing the suggested success typing is the same with some enforcing keys
   # TODO: add exponential backoff for reconnects
   # TODO: stop the worker when we couldn't reconnect several times
-  # @spec handle_rabbit_connect(connection_result, State.t()) :: {:noreply, State.t()}
-  #       when connection_result: {:error, any()} | {:ok, AMQP.Connection.t()}
+  @spec handle_rabbit_connect(connection_result, State.t()) :: {:noreply, State.t()}
+        when connection_result: {:error, any()} | {:ok, AMQP.Connection.t()}
   defp handle_rabbit_connect({:error, reason}, %{config: config} = state) do
     Logger.error("[Rabbit] error reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
@@ -240,6 +243,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:noreply, state}
   end
 
+  # Handles RabbitMQ successfull connection, links itself to the connection `pid`
+  # to handle connection errors and spawn as many channels as needed based on
+  # config defaults to `1_000`
   defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
     Logger.info("[Rabbit] connected")
     %{pid: pid} = connection
@@ -265,12 +271,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
     Process.send_after(self(), :connect, interval)
   end
 
-  @doc """
-  Opens a channel using the specified client, each channel is backed by a
-  GenServer process, so we need to link the worker to all those processes
-  to be able to restart them when closed or when they crash e.g by a
-  connection error
-  """
+  # Opens a channel using the specified client, each channel is backed by a
+  # GenServer process, so we need to link the worker to all those processes
+  # to be able to restart them when closed or when they crash e.g by a
+  # connection error
   # TODO: maybe start channels on demand as needed and store them in the state for re-use
   @spec start_channel(module(), AMQP.Connection.t()) :: {:ok, AMQP.Channel.t()} | {:error, any()}
   defp start_channel(client, connection) do

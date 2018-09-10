@@ -35,6 +35,7 @@ defmodule Domain.Tasks.Sources.Github do
     end
   end
 
+  # Clones a Github repository into the given path
   defp clone(repo_url, dest_path) do
     opts = [
       env: [],

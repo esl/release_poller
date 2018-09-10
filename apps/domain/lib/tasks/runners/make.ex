@@ -34,14 +34,9 @@ defmodule Domain.Tasks.Runners.Make do
     end
   end
 
+  # Executes `make` per each command/target passing along some extra environment
   defp make(%{path: path, env: extra_env, commands: commands}, env) do
     for command <- commands do
-      # TODO: validate output
-      # make -f path/to/Makefile build
-      # make -f path/to/Makefile deploy
-      # make -f path/to/Makefile release
-      # ...
-
       case do_make([command], env: extra_env ++ env, cd: path) do
         {_, 0} ->
           :ok
@@ -55,6 +50,7 @@ defmodule Domain.Tasks.Runners.Make do
     :ok
   end
 
+  # Executes a `make` command
   defp do_make(args, opts) do
     defaults = [stderr_to_stdout: true, into: IO.stream(:stdio, :line)]
     opts = Keyword.merge(defaults, opts)

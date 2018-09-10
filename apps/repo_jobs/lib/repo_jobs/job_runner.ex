@@ -7,8 +7,13 @@ defmodule RepoJobs.JobRunner do
 
   @tmp_dir System.tmp_dir!()
 
+  @doc """
+  Fetch and Executes all tasks assigned to a new tag/release of a dependency,
+  returning all tasks that succeeded as `{:ok, task}` and all that failed as
+  `{:error, task}`
+  """
   @spec run(NewReleaseJob.t(), Path.t()) :: list(result)
-        when result: {:ok, Task.t()} | {:error, any()}
+        when result: {:ok, Task.t()} | {:error, Task.t()}
   def run(job, tmp_dir \\ @tmp_dir)
   def run(%{repo: %{tasks: []}}, _tmp_dir), do: []
 
@@ -41,6 +46,7 @@ defmodule RepoJobs.JobRunner do
     end)
   end
 
+  # Returns a list of tuples to be passed as environment variables to each task
   defp generate_env(%{repo: %{name: repo_name}, new_tag: tag}) do
     repo_name = String.upcase(repo_name)
     %{name: tag_name, zipball_url: zipball_url, tarball_url: tarball_url} = tag

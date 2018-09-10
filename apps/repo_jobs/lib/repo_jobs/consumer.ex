@@ -59,6 +59,9 @@ defmodule RepoJobs.Consumer do
     {:reply, state, state}
   end
 
+  # Gets a connection worker out of the connection pool, if there is one available
+  # takes a channel out of it channel pool, if there is one available subscribe
+  # itself as a consumer process.
   @impl true
   def handle_info(:connect, %{pool_id: pool_id} = state) do
     pool_id
@@ -136,6 +139,8 @@ defmodule RepoJobs.Consumer do
     {:stop, :normal, %State{state | channel: nil}}
   end
 
+  # When successfully checks out a channel, subscribe itself as a consumer
+  # process and monitors it handle crashes and reconnections
   defp handle_channel_checkout({:ok, %{pid: channel_pid} = channel}, %State{} = state) do
     case handle_consume(channel) do
       {:ok, consumer_tag} ->
@@ -149,6 +154,7 @@ defmodule RepoJobs.Consumer do
     end
   end
 
+  # When there was an error checking out a channel, retry in a configured interval
   defp handle_channel_checkout({:error, reason}, state) do
     # TODO: use exponential backoff to reconnect
     # TODO: use circuit breaker to fail fast
