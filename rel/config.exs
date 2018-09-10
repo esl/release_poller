@@ -34,6 +34,10 @@ environment :dev do
 end
 
 environment :prod do
+  set config_providers: [
+    {Mix.Releases.Config.Providers.Elixir, ["${RELEASE_ROOT_DIR}/etc/config.exs"]}
+  ]
+
   set(include_erts: false)
   set(include_src: false)
   set(cookie: :"2!!icJ[Bs)bWBqj&BBWWUGm`sfOn|r3a5luB;A0/BVPiGy/MD?R[@(G{5*;$]F=R")
@@ -47,6 +51,10 @@ end
 release :poller do
   set(version: current_version(:repo_poller))
 
+  set overlays: [
+    {:copy, "rel/config/pooler.config.exs", "etc/config.exs"}
+  ]
+
   set(
     applications: [
       :runtime_tools,
@@ -59,6 +67,10 @@ end
 
 release :jobs do
   set(version: current_version(:repo_jobs))
+
+  set overlays: [
+    {:copy, "rel/config/jobs.config.exs", "etc/config.exs"}
+  ]
 
   set(
     applications: [
