@@ -25,6 +25,13 @@ defmodule Domain.Tags.Tag do
 
   @spec new_tags(list(Tag.t()), list(Tag.t())) :: list(Tag.t())
   def new_tags(old_tags, new_tags) do
-    new_tags -- old_tags
+    Enum.reduce(new_tags, [], fn tag, acc ->
+      if Enum.member?(old_tags, tag) do
+        acc
+      else
+        [tag | acc]
+      end
+    end)
+    |> Enum.reverse()
   end
 end

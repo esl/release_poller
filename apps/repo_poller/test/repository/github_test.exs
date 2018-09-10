@@ -89,8 +89,8 @@ defmodule RepoPoller.Api.GithubTest do
 
     with_mock Tags, list: lambda_list do
       assert {:error, :rate_limit, retry} = Github.get_tags(repo)
-      # sometimes the retry interval returns 3600, 3599, ... due to timing
-      assert retry <= 3600 and retry > 3590
+      # sometimes the retry interval returns 3_600_000, 3_590_000, ... due to timing
+      assert retry <= 3_600_000 and retry > 3_590_000
     end
   end
 

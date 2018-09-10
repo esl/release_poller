@@ -1,4 +1,7 @@
 defmodule RepoPoller.Repository.Github do
+  @moduledoc """
+  Repository Adapter for Github's API
+  """
   @behaviour RepoPoller.Repository.Adapter
 
   alias Tentacat.Client
@@ -7,6 +10,21 @@ defmodule RepoPoller.Repository.Github do
   alias Domain.Tags.Tag
   alias RepoPoller.Config
 
+  @doc """
+  Get all tags/releases from a Github repository
+
+  ## Args:
+
+  * `repo` - repository abstraction referencing a Github repository
+
+  ## Return Values:
+
+    * `{:ok, tags}` - ok tuple with the repo tags
+    * `{:error, :rate_limit, milli_seconds}` - when we are rate limited by
+    github we should retry in the given milli_seconds
+    * `{:error, reason}` - any other error returned by either Tentacat
+    or HTTPoison
+  """
   @spec get_tags(Repo.t()) ::
           {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, map()}
   def get_tags(%{owner: owner, name: name}) do
@@ -40,8 +58,8 @@ defmodule RepoPoller.Repository.Github do
       rate_limit_reset = String.to_integer(rate_limit_reset, 10)
       rate_limit_reset_dt = DateTime.from_unix!(rate_limit_reset)
       now = DateTime.utc_now()
-      retry_in_seconds = DateTime.diff(rate_limit_reset_dt, now)
-      {:error, :rate_limit, retry_in_seconds}
+      retry_in_milli_seconds = DateTime.diff(rate_limit_reset_dt, now) * 1000
+      {:error, :rate_limit, retry_in_milli_seconds}
     end
   end
 

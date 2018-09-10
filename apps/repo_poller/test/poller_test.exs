@@ -30,7 +30,8 @@ defmodule RepoPoller.PollerTest do
       queue: "new_releases.queue",
       exchange: "",
       client: FakeRabbitMQ,
-      caller: caller
+      caller: caller,
+      reconnect: 10
     ]
 
     rabbitmq_conn_pool = [
@@ -80,23 +81,115 @@ defmodule RepoPoller.PollerTest do
   test "gets repo tags and update them", %{pool_id: pool_id} do
     repo =
       Repo.new("https://github.com/elixir-lang/elixir")
-      |> Repo.set_tags([
-        %Tag{name: "v1.6.6"},
-        %Tag{name: "v1.6.5"},
-        %Tag{name: "v1.6.4"},
-        %Tag{name: "v1.6.3"},
-        %Tag{name: "v1.6.2"},
-        %Tag{name: "v1.6.1"},
-        %Tag{name: "v1.6.0"},
-        %Tag{name: "v1.6.0-rc.1"},
-        %Tag{name: "v1.6.0-rc.0"}
+      |> Repo.add_tags([
+        %Tag{
+          commit: %{
+            sha: "1ec9d1d7bdd01665deb3607ba6beb8bcd524b85d",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/1ec9d1d7bdd01665deb3607ba6beb8bcd524b85d"
+          },
+          name: "v1.6.6",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjY=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.6",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.6"
+        },
+        %Tag{
+          commit: %{
+            sha: "a9f1be07ca1a939739bd013f100686c8cf81432a",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/a9f1be07ca1a939739bd013f100686c8cf81432a"
+          },
+          name: "v1.6.5",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjU=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.5",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.5"
+        },
+        %Tag{
+          commit: %{
+            sha: "c107a2fe2623d11d132cdfeefbb7370abd44f85c",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/c107a2fe2623d11d132cdfeefbb7370abd44f85c"
+          },
+          name: "v1.6.4",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjQ=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.4",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.4"
+        },
+        %Tag{
+          commit: %{
+            sha: "45c7f828ef7cb29647d4ac999761ed4e2ff0dc08",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/45c7f828ef7cb29647d4ac999761ed4e2ff0dc08"
+          },
+          name: "v1.6.3",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjM=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.3",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.3"
+        },
+        %Tag{
+          commit: %{
+            sha: "c2a9c93f023c0c00e5f387a1476f4cca01752bb8",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/c2a9c93f023c0c00e5f387a1476f4cca01752bb8"
+          },
+          name: "v1.6.2",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjI=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.2",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.2"
+        },
+        %Tag{
+          commit: %{
+            sha: "2b588dfb3ebb2f3221bec3509cb1dbb8e08ef1af",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/2b588dfb3ebb2f3221bec3509cb1dbb8e08ef1af"
+          },
+          name: "v1.6.1",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjE=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.1",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.1"
+        },
+        %Tag{
+          commit: %{
+            sha: "63b8d0ba34f38baa6f3a11020215b2f66213d27e",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/63b8d0ba34f38baa6f3a11020215b2f66213d27e"
+          },
+          name: "v1.6.0",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjA=",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.0",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.0"
+        },
+        %Tag{
+          commit: %{
+            sha: "67e575eca7b97d4fe063626671d1fd1da0ba7fed",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/67e575eca7b97d4fe063626671d1fd1da0ba7fed"
+          },
+          name: "v1.6.0-rc.1",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjAtcmMuMQ==",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.0-rc.1",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.0-rc.1"
+        },
+        %Tag{
+          commit: %{
+            sha: "182c730bdb431fd1ff6789057e4903c33e377f43",
+            url:
+              "https://api.github.com/repos/elixir-lang/elixir/commits/182c730bdb431fd1ff6789057e4903c33e377f43"
+          },
+          name: "v1.6.0-rc.0",
+          node_id: "MDM6UmVmMTIzNDcxNDp2MS42LjAtcmMuMA==",
+          tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.6.0-rc.0",
+          zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.6.0-rc.0"
+        }
       ])
 
     :ok = DB.save(repo)
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
+
     tags = DB.get_tags(repo)
+
     assert length(tags) == 21
     %{repo: %{tags: state_tags}} = Poller.state(pid)
     assert state_tags == tags
@@ -134,5 +227,31 @@ defmodule RepoPoller.PollerTest do
            end) =~ "error polling info for repo: fake reason: :not_found"
   end
 
-  # TODO: test publishing failure modes
+  test "handles errors when trying to get a channel", %{pool_id: pool_id} do
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+
+    BugsBunny.with_channel(pool_id, fn {:ok, _channel} ->
+      log =
+        capture_log(fn ->
+          Poller.poll(pid)
+          assert_receive {:error, :out_of_retries}
+          :timer.sleep(100)
+          refute Process.alive?(pid)
+        end)
+
+      assert log =~ "error getting a channel reason: out_of_channels"
+    end)
+  end
+
+  test "handles errors when publishing a job fails", %{pool_id: pool_id} do
+    repo = Repo.new("https://github.com/error/fake")
+
+    assert capture_log(fn ->
+             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+             Poller.poll(pid)
+             assert_receive {:job_not_published, _}
+             refute_receive {:job_published, _}
+           end) =~ "error publishing new release for error/fake reason: kaboom"
+  end
 end

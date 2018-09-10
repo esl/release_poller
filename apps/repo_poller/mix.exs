@@ -27,11 +27,13 @@ defmodule RepoPoller.MixProject do
   defp deps do
     [
       {:tentacat, "~> 1.1.0"},
-      {:persistent_ets, github: "michalmuskala/persistent_ets"}, # use master because there aren't newer releases and master has an API function we need
+      # use master because there aren't newer releases and master has an API function we need
+      {:persistent_ets, github: "michalmuskala/persistent_ets"},
       {:mock, "~> 0.3.2", only: :test},
       {:bugs_bunny, in_umbrella: true},
       {:domain, in_umbrella: true},
-      {:poison, "~> 4.0"}
+      {:poison, "~> 4.0"},
+      {:httpoison, "~> 1.3", override: true}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:sibling_app_in_umbrella, in_umbrella: true},

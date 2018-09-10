@@ -91,8 +91,8 @@ defmodule RepoPoller.Poller do
             if caller, do: send(caller, res)
             {:noreply, new_state}
 
-          {:error, reason} ->
-            if caller, do: send(caller, reason)
+          {:error, reason} = error ->
+            if caller, do: send(caller, error)
             {:stop, reason, state}
         end
 
@@ -135,41 +135,65 @@ defmodule RepoPoller.Poller do
         {:ok, state}
 
       new_tags ->
-        new_repo = Repo.set_tags(repo, tags)
-        schedule_jobs(state, new_repo, new_tags)
+        schedule_jobs(state, repo, new_tags)
     end
   end
 
   @spec schedule_jobs(State.t(), Repo.t(), list(Tag.t()), non_neg_integer()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
-  defp schedule_jobs(state, repo, tags, retries \\ 5)
-  defp schedule_jobs(_state, _repo, _tags, 0), do: {:error, :out_of_retries}
+  defp schedule_jobs(state, repo, new_tags, retries \\ 5)
+  defp schedule_jobs(_state, _repo, _new_tags, 0), do: {:error, :out_of_retries}
 
-  defp schedule_jobs(
-         %{pool_id: pool_id} = state,
-         %{owner: owner, name: name} = repo,
-         tags,
-         retries
-       ) do
-    job = NewReleaseJob.new(repo, tags)
-    BugsBunny.with_channel(pool_id, fn error_or_channel ->
-      with {:ok, channel} <- error_or_channel,
-           job_payload <- NewReleaseJobSerializer.serialize!(job),
-           :ok <- Logger.info("publishing new releases for #{owner}/#{name}"),
-           :ok <- publish_new_tags(channel, job_payload) do
-        :ok = DB.save(repo)
-        {:ok, %State{state | repo: repo}}
-      else
-        {:error, reason} ->
-          Logger.error("error publishing new releases for #{owner}/#{name} reason: #{reason}")
-          :timer.sleep(5_000)
-          schedule_jobs(state, repo, tags, retries - 1)
-      end
-    end)
+  defp schedule_jobs(%{pool_id: pool_id} = state, repo, new_tags, retries) do
+    BugsBunny.with_channel(pool_id, &do_with_channel(&1, state, repo, new_tags, retries))
   end
 
-  @spec publish_new_tags(AMQP.Channel.t(), String.t() | iodata()) :: :ok | AMQP.Basic.error()
-  defp publish_new_tags(channel, payload) do
+  @spec do_with_channel(
+          {:ok, AMQP.Channel.t()} | {:error, :disconected | :out_of_channels},
+          State.t(),
+          Repo.t(),
+          list(Tag.t()),
+          non_neg_integer()
+        ) :: {:ok, State.t()} | {:error, :out_of_retries}
+  defp do_with_channel({:error, reason}, state, repo, new_tags, retries) do
+    Logger.error("error getting a channel reason: #{reason}")
+
+    Config.get_rabbitmq_reconnection_interval()
+    |> :timer.sleep()
+
+    schedule_jobs(state, repo, new_tags, retries - 1)
+  end
+
+  defp do_with_channel({:ok, channel}, %{caller: caller} = state, repo, new_tags, _retries) do
+    %{owner: owner, name: name} = repo
+
+    jobs = NewReleaseJob.new(repo, new_tags)
+    Logger.info("publishing #{length(jobs)} releases for #{owner}/#{name}")
+
+    for job <- jobs do
+      job_payload = NewReleaseJobSerializer.serialize!(job)
+
+      case publish_job(channel, job_payload) do
+        {:error, reason} ->
+          # TODO: handle publish errors e.g maybe remove tag from new_tags so it can be re-scheduled later
+          Logger.error("error publishing new release for #{owner}/#{name} reason: #{reason}")
+          if caller, do: send(caller, {:job_not_published, job_payload})
+
+          :ok
+
+        :ok ->
+          if caller, do: send(caller, {:job_published, job_payload})
+          :ok
+      end
+    end
+
+    new_repo = Repo.add_tags(repo, new_tags)
+    :ok = DB.save(new_repo)
+    {:ok, %State{state | repo: new_repo}}
+  end
+
+  @spec publish_job(AMQP.Channel.t(), String.t() | iodata()) :: :ok | AMQP.Basic.error()
+  defp publish_job(channel, payload) do
     # pass general config options when publishing new tags e.g :persistent, :mandatory, :immediate etc
     config = Config.get_rabbitmq_config()
     queue = Config.get_rabbitmq_queue()

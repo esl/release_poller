@@ -8,7 +8,7 @@ defmodule ReleasePoller.DBTest do
   setup do
     dialyxir =
       Repo.new("https://github.com/jeremyjh/dialyxir")
-      |> Repo.set_tags([
+      |> Repo.add_tags([
         %Tag{name: "v0.3.1"},
         %Tag{name: "v0.3.0"},
         %Tag{name: "1.0.0-rc.3"},
@@ -29,7 +29,7 @@ defmodule ReleasePoller.DBTest do
 
     elixir =
       Repo.new("https://github.com/elixir-lang/elixir")
-      |> Repo.set_tags([
+      |> Repo.add_tags([
         %Tag{name: "v1.7.2"},
         %Tag{name: "v1.7.1"},
         %Tag{name: "v1.7.0"},
@@ -83,6 +83,7 @@ defmodule ReleasePoller.DBTest do
       for repo <- repos do
         assert :ok = DB.save(repo)
       end
+
       :ok
     end
 

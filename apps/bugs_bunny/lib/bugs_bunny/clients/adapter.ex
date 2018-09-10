@@ -6,4 +6,6 @@ defmodule BugsBunny.Clients.Adapter do
               :ok | AMQP.Basic.error()
   @callback consume(AMQP.Channel.t(), String.t(), pid() | nil, keyword) ::
               {:ok, String.t()} | AMQP.Basic.error()
+  @callback ack(AMQP.Channel.t(), String.t(), keyword()) :: :ok | AMQP.Basic.error()
+  @callback reject(AMQP.Channel.t(), String.t(), keyword()) :: :ok | AMQP.Basic.error()
 end

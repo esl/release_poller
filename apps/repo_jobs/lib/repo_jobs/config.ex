@@ -1,4 +1,8 @@
 defmodule RepoJobs.Config do
+  def get_github_access_token() do
+    Application.get_env(:repo_jobs, :github_auth) || System.get_env("GITHUB_AUTH")
+  end
+
   def get_consumers() do
     Application.get_env(:repo_jobs, :consumers)
   end
@@ -29,5 +33,10 @@ defmodule RepoJobs.Config do
   def get_rabbitmq_client() do
     get_rabbitmq_config()
     |> Keyword.get(:client, BugsBunny.RabbitMQ)
+  end
+
+  def get_rabbitmq_reconnection_interval() do
+    get_rabbitmq_config()
+    |> Keyword.get(:reconnect, 5000)
   end
 end

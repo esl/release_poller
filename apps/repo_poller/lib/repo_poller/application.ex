@@ -15,7 +15,7 @@ defmodule RepoPoller.Application do
     children = [
       {BugsBunny.PoolSupervisor,
        [rabbitmq_config: rabbitmq_config, rabbitmq_conn_pool: rabbitmq_conn_pool]},
-      {PollerSupervisor, []},
+      {PollerSupervisor, []}
     ]
 
     # if for some reason the Supervisor of the RabbitMQ connection pool is terminated we should

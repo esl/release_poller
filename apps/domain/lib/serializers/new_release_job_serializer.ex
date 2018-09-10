@@ -1,6 +1,7 @@
 defmodule Domain.Serializers.NewReleaseJobSerializer do
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
+  alias Domain.Tasks.Task
   alias Domain.Jobs.NewReleaseJob
 
   @spec serialize!(NewReleaseJob.t()) :: iodata() | no_return()
@@ -12,27 +13,52 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
   decodes a JSON string/iodata into a typed nested struct (NewReleaseJob with
   its new Tags and corresponding Repo)
   %NewReleaseJob{
-    new_tags: [
-      %Tag{
-        commit: %{
-          sha: "...",
-          url: "..."
-        },
-        name: "...",
-        node_id: "...",
-        tarball_url: "...",
-        zipball_url: "..."
+    new_tag: %Tag{
+      commit: %{
+        sha: "...",
+        url: "..."
       },
-      ...
-    ],
+      name: "...",
+      node_id: "...",
+      tarball_url: "...",
+      zipball_url: "..."
+    },
     repo: %Repo{name: "erlang-katana", owner: "inaka", tags: []}
   }
   """
   @spec deserialize!(iodata()) :: NewReleaseJob.t() | no_return()
   def deserialize!(payload) do
-    Poison.decode!(payload,
-      as: %NewReleaseJob{repo: %Repo{name: nil, owner: nil}, new_tags: [%Tag{name: nil}]},
-      keys: :atoms!
-    )
+    job =
+      Poison.decode!(payload,
+        as: %NewReleaseJob{
+          repo: %Repo{name: nil, owner: nil, tasks: [%Task{}]},
+          new_tag: %Tag{name: nil}
+        },
+        keys: :atoms!
+      )
+
+    map_tasks(job)
+  end
+
+  defp map_tasks(%{repo: repo} = job) do
+    %{tasks: tasks} = repo
+
+    tasks =
+      tasks
+      |> Enum.map(fn %{runner: runner, source: source, env: env_list} = task ->
+        # runner and source cames as stringified atoms "Elixir.Domain.Tasks.Runners.Make"
+        runner_module = Module.concat([runner])
+        source_module = Module.concat([source])
+
+        env =
+          env_list
+          |> Enum.map(fn [key, value] ->
+            {key, value}
+          end)
+
+        %{task | runner: runner_module, source: source_module, env: env}
+      end)
+
+    %{job | repo: %{repo | tasks: tasks}}
   end
 end

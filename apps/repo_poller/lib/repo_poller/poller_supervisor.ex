@@ -3,6 +3,7 @@ defmodule RepoPoller.PollerSupervisor do
 
   alias RepoPoller.Poller
   alias Domain.Repos.Repo
+  alias Domain.Tasks.Task
   alias RepoPoller.{DB, Config}
 
   def start_link(_) do
@@ -23,8 +24,12 @@ defmodule RepoPoller.PollerSupervisor do
         repos ->
           pool_id = Config.get_connection_pool_id()
 
-          for {url, adapter, interval} <- repos do
-            repo = Repo.new(url)
+          for {url, adapter, interval, tasks} <- repos do
+            tasks = tasks |> Enum.map(&Task.new(&1))
+
+            repo =
+              Repo.new(url)
+              |> Repo.set_tasks(tasks)
 
             Supervisor.child_spec({Poller, {repo, adapter, pool_id, interval * 1000}},
               id: "poller_#{repo.name}"

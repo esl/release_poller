@@ -1,6 +1,6 @@
 defmodule RepoPoller.Config do
   def get_github_access_token() do
-    Application.get_env(:repo_poller, :github_auth) || System.get_env("GITHUB_AUTH")
+    Application.get_env(:repo_poller, :github_auth, System.get_env("GITHUB_AUTH"))
   end
 
   def get_repos() do
@@ -33,6 +33,11 @@ defmodule RepoPoller.Config do
   def get_rabbitmq_client() do
     get_rabbitmq_config()
     |> Keyword.get(:client, BugsBunny.RabbitMQ)
+  end
+
+  def get_rabbitmq_reconnection_interval() do
+    get_rabbitmq_config()
+    |> Keyword.get(:reconnect, 5000)
   end
 
   def get_db_name() do
