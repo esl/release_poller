@@ -2,7 +2,7 @@ defmodule RepoPoller.Poller do
   use GenServer
   require Logger
 
-  alias RepoPoller.DB
+  alias RepoPoller.{DB, Config}
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
   alias Domain.Jobs.NewReleaseJob
@@ -171,28 +171,9 @@ defmodule RepoPoller.Poller do
   @spec publish_new_tags(AMQP.Channel.t(), String.t() | iodata()) :: :ok | AMQP.Basic.error()
   defp publish_new_tags(channel, payload) do
     # pass general config options when publishing new tags e.g :persistent, :mandatory, :immediate etc
-    config = get_rabbitmq_config()
-    queue = get_rabbitmq_queue()
-    exchange = get_rabbitmq_exchange()
-    get_rabbitmq_client().publish(channel, exchange, queue, payload, config)
-  end
-
-  defp get_rabbitmq_config() do
-    Application.get_env(:repo_poller, :rabbitmq_config)
-  end
-
-  defp get_rabbitmq_queue() do
-    Application.get_env(:repo_poller, :rabbitmq_config)
-    |> Keyword.fetch!(:queue)
-  end
-
-  defp get_rabbitmq_exchange() do
-    Application.get_env(:repo_poller, :rabbitmq_config)
-    |> Keyword.fetch!(:exchange)
-  end
-
-  defp get_rabbitmq_client() do
-    Application.get_env(:repo_poller, :rabbitmq_config)
-    |> Keyword.get(:client, BugsBunny.RabbitMQ)
+    config = Config.get_rabbitmq_config()
+    queue = Config.get_rabbitmq_queue()
+    exchange = Config.get_rabbitmq_exchange()
+    Config.get_rabbitmq_client().publish(channel, exchange, queue, payload, config)
   end
 end

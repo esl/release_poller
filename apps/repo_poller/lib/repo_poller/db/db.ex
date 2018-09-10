@@ -1,12 +1,13 @@
 defmodule RepoPoller.DB do
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
+  alias RepoPoller.Config
 
   @table :repo_tags
 
   @spec new() :: :ets.tab()
   def new do
-    db_name = get_db_name()
+    db_name = Config.get_db_name()
 
     PersistentEts.new(@table, db_name, [
       :named_table,
@@ -34,9 +35,5 @@ defmodule RepoPoller.DB do
   @spec clear() :: true
   def clear() do
     true = :ets.delete_all_objects(@table)
-  end
-
-  defp get_db_name() do
-    Application.get_env(:repo_poller, :db_name, "repo_tags.tab")
   end
 end

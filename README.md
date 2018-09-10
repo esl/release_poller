@@ -21,3 +21,13 @@ $> docker stop roger_rabbit
 # if you need to remove the container manually
 $> docker container rm roger_rabbit
 ```
+
+## Setup releases
+
+```bash
+# Release the repo_jobs app along its dependencies
+MIX_ENV=prod mix release --name=jobs
+
+# Release the repo_poller app along its dependencies
+MIX_ENV=prod mix release --name=poller
+```

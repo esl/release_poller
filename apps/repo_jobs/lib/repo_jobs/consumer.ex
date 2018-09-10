@@ -4,6 +4,7 @@ defmodule RepoJobs.Consumer do
   require Logger
 
   alias Domain.Serializers.NewReleaseJobSerializer
+  alias RepoJobs.Config
 
   defmodule State do
     @enforce_keys [:pool_id]
@@ -122,9 +123,9 @@ defmodule RepoJobs.Consumer do
   end
 
   defp handle_consume(channel) do
-    queue = get_rabbitmq_queue()
-    config = get_rabbitmq_config()
-    get_rabbitmq_client().consume(channel, queue, self(), config)
+    queue = Config.get_rabbitmq_queue()
+    config = Config.get_rabbitmq_config()
+    Config.get_rabbitmq_client().consume(channel, queue, self(), config)
   end
 
   defp process_job(_job) do
@@ -133,19 +134,5 @@ defmodule RepoJobs.Consumer do
 
   defp schedule_connect() do
     send(self(), :connect)
-  end
-
-  defp get_rabbitmq_config() do
-    Application.get_env(:repo_jobs, :rabbitmq_config)
-  end
-
-  defp get_rabbitmq_queue() do
-    Application.get_env(:repo_jobs, :rabbitmq_config)
-    |> Keyword.fetch!(:queue)
-  end
-
-  defp get_rabbitmq_client() do
-    Application.get_env(:repo_jobs, :rabbitmq_config)
-    |> Keyword.get(:client, BugsBunny.RabbitMQ)
   end
 end
