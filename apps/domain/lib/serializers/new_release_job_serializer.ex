@@ -1,4 +1,7 @@
 defmodule Domain.Serializers.NewReleaseJobSerializer do
+  @moduledoc """
+  JSON Serializer and Deserializer for `NewReleaseJob`
+  """
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
   alias Domain.Tasks.Task
@@ -40,6 +43,7 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
     map_tasks(job)
   end
 
+  # Converts the deserialized job's tasks into something the system understands
   defp map_tasks(%{repo: repo} = job) do
     %{tasks: tasks} = repo
 

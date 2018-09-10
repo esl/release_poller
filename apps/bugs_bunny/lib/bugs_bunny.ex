@@ -26,6 +26,36 @@ defmodule BugsBunny do
     do_with_conn(conn_worker, fun)
   end
 
+  @doc """
+  Gets a connection worker out of the pool and returns it back immediately so it
+  can be reused by another client
+  """
+  @spec get_connection_worker(atom()) :: pid()
+  def get_connection_worker(pool_id) do
+    conn_worker = :poolboy.checkout(pool_id)
+    :ok = :poolboy.checkin(pool_id, conn_worker)
+    conn_worker
+  end
+
+  @doc """
+  Gets a RabbitMQ channel out of a connection worker
+  """
+  @spec checkout_channel(pid()) ::
+          {:ok, AMQP.Channel.t()} | {:error, :disconected | :out_of_channels}
+  def checkout_channel(conn_worker) do
+    Conn.checkout_channel(conn_worker)
+  end
+
+  @doc """
+  Puts back a RabbitMQ channel into its corresponding connection worker
+  """
+  @spec checkin_channel(pid(), AMQP.Channel.t()) :: :ok
+  def checkin_channel(conn_worker, channel) do
+    Conn.checkin_channel(conn_worker, channel)
+  end
+
+  # Gets a channel out of a connection worker and performs a function with it
+  # then it puts it back to the same connection worker, mimicking a transaction.
   @spec do_with_conn(pid(), f()) :: any()
   defp do_with_conn(conn_worker, fun) do
     case checkout_channel(conn_worker) do
@@ -39,19 +69,5 @@ defmodule BugsBunny do
       {:error, _} = error ->
         fun.(error)
     end
-  end
-
-  def get_connection_worker(pool_id) do
-    conn_worker = :poolboy.checkout(pool_id)
-    :ok = :poolboy.checkin(pool_id, conn_worker)
-    conn_worker
-  end
-
-  def checkout_channel(conn_worker) do
-    Conn.checkout_channel(conn_worker)
-  end
-
-  def checkin_channel(conn_worker, channel) do
-    Conn.checkin_channel(conn_worker, channel)
   end
 end

@@ -1,4 +1,7 @@
 defmodule Domain.Tags.Tag do
+  @moduledoc """
+  Represents the new `tags` or `releases` of a Github repository
+  """
   alias Domain.Helpers.Map, as: HelperMap
   alias __MODULE__
 
@@ -23,6 +26,9 @@ defmodule Domain.Tags.Tag do
     struct!(__MODULE__, new_attrs)
   end
 
+  @doc """
+  Returns the new `tags` of a repository, computing the difference from both lists
+  """
   @spec new_tags(list(Tag.t()), list(Tag.t())) :: list(Tag.t())
   def new_tags(old_tags, new_tags) do
     Enum.reduce(new_tags, [], fn tag, acc ->
