@@ -95,6 +95,8 @@ defmodule RepoJobs.Consumer do
         {:basic_deliver, payload, %{delivery_tag: delivery_tag}},
         %{caller: caller, channel: channel} = state
       ) do
+    Logger.info("[consumer] consuming payload")
+
     job = NewReleaseJobSerializer.deserialize!(payload)
     if caller, do: send(caller, {:new_release_job, job})
 
@@ -119,7 +121,6 @@ defmodule RepoJobs.Consumer do
       if caller, do: send(caller, {:ack, task_results})
     end
 
-    Logger.info("[consumer] consuming payload")
     {:noreply, state}
   end
 

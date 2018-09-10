@@ -1,6 +1,5 @@
 defmodule RepoPoller.DB do
   alias Domain.Repos.Repo
-  alias Domain.Tags.Tag
   alias RepoPoller.Config
 
   @table :repo_tags
@@ -24,11 +23,11 @@ defmodule RepoPoller.DB do
     PersistentEts.flush(@table)
   end
 
-  @spec get_tags(Repo.t()) :: list(Tag.t())
-  def get_tags(%{name: repo_name}) do
+  @spec get_repo(Repo.t()) :: Repo.t() | nil
+  def get_repo(%{name: repo_name}) do
     case :ets.lookup(@table, repo_name) do
-      [] -> []
-      [{^repo_name, %{tags: tags}}] -> tags
+      [] -> nil
+      [{^repo_name, repo}] -> repo
     end
   end
 

@@ -92,9 +92,9 @@ defmodule ReleasePoller.DBTest do
       # not saved
       other = Repo.new("https://github.com/fake/other")
 
-      assert DB.get_tags(dialyxir) == dialyxir.tags
-      assert DB.get_tags(elixir) == elixir.tags
-      assert DB.get_tags(other) == []
+      assert DB.get_repo(dialyxir) == dialyxir
+      assert DB.get_repo(elixir) == elixir
+      assert DB.get_repo(other) == nil
     end
   end
 end

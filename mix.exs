@@ -7,6 +7,7 @@ defmodule ReleasePoller.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
+      elixir: "~> 1.7",
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
