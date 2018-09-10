@@ -10,15 +10,28 @@ defmodule RepoPoller.PollerSupervisor do
   end
 
   def init(_) do
-    repos = Application.get_env(:repo_poller, :repos, [])
-
     # let the DB be managed by the supervisor so it won't be restarted unless the supervisor is restarted too
     DB.new()
 
     children =
-      for {url, adapter, interval} <- repos do
-        repo = Repo.new(url)
-        Supervisor.child_spec({Poller, {repo, adapter, interval * 1000}}, id: "poller_#{repo.name}")
+      Application.get_env(:repo_poller, :repos, [])
+      |> case do
+        # don't start any child and don't ask for pool configs (for testing only)
+        [] ->
+          []
+
+        repos ->
+          pool_id =
+            Application.get_env(:repo_poller, :rabbitmq_conn_pool, [])
+            |> Keyword.fetch!(:pool_id)
+
+          for {url, adapter, interval} <- repos do
+            repo = Repo.new(url)
+
+            Supervisor.child_spec({Poller, {repo, adapter, pool_id, interval * 1000}},
+              id: "poller_#{repo.name}"
+            )
+          end
       end
 
     opts = [strategy: :one_for_one]

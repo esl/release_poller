@@ -80,8 +80,8 @@ defmodule RepoPoller.Api.GithubTest do
          status_code: 403,
          body: %{"message" => "Repository not found."},
          headers: [
-           {"X-RateLimit-Remaining", 0},
-           {"X-RateLimit-Reset", in_1_hour}
+           {"X-RateLimit-Remaining", "0"},
+           {"X-RateLimit-Reset", "#{in_1_hour}"}
          ]
        }}
     end

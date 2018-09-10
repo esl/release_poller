@@ -15,7 +15,7 @@ defmodule RepoPoller.DB do
     ])
   end
 
-  @spec save(Repo.t()) :: true
+  @spec save(Repo.t()) :: :ok
   def save(%{name: repo_name} = repo) do
     :ets.insert(@table, {repo_name, repo})
     # persist all saves to file

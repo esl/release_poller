@@ -57,7 +57,13 @@ defmodule RepoPoller.Domain.TagTest do
       %Tag{name: "v1.6.0-rc.1"},
       %Tag{name: "v1.6.0-rc.0"}
     ]
-    assert Tag.new_tags?(old, new)
+    assert Tag.new_tags(old, new) == [
+      %Tag{name: "v1.7.2"},
+      %Tag{name: "v1.7.1"},
+      %Tag{name: "v1.7.0"},
+      %Tag{name: "v1.7.0-rc.1"},
+      %Tag{name: "v1.7.0-rc.0"}
+    ]
   end
 
   test "hasn't new tags - with tags" do
@@ -95,7 +101,7 @@ defmodule RepoPoller.Domain.TagTest do
       %Tag{name: "v1.6.0-rc.1"},
       %Tag{name: "v1.6.0-rc.0"}
     ]
-    refute Tag.new_tags?(old, new)
+    assert Tag.new_tags(old, new) == []
   end
 
   test "hasn't new tags - without tags" do
@@ -103,6 +109,6 @@ defmodule RepoPoller.Domain.TagTest do
     old = []
     # with version 1.7.*
     new = []
-    refute Tag.new_tags?(old, new)
+    assert Tag.new_tags(old, new) == []
   end
 end

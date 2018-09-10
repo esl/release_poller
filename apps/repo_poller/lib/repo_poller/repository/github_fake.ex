@@ -13,6 +13,23 @@ defmodule RepoPoller.Repository.GithubFake do
     {:error, :not_found}
   end
 
+  def get_tags(%{owner: "new-tag"}) do
+    {:ok,
+     [
+       %Tag{
+         commit: %{
+           sha: "2b338092b6da5cd5101072dfdd627cfbb49e4736",
+           url:
+             "https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736"
+         },
+         name: "v1.7.2",
+         node_id: "MDM6UmVmMTIzNDcxNDp2MS43LjI=",
+         tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
+         zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
+       }
+     ]}
+  end
+
   def get_tags(_) do
     {:ok,
      [

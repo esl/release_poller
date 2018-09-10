@@ -1,9 +1,9 @@
-defmodule RepoPoller.MixProject do
+defmodule BugsBunny.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :repo_poller,
+      app: :bugs_bunny,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -18,19 +18,18 @@ defmodule RepoPoller.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
-      mod: {RepoPoller.Application, []}
+      extra_applications: [:logger]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:tentacat, "~> 1.1.0"},
-      {:persistent_ets, github: "michalmuskala/persistent_ets"}, # use master because there aren't newer releases and master has an API function we need
-      {:mock, "~> 0.3.2", only: :test},
-      {:bugs_bunny, in_umbrella: true},
-      {:poison, "~> 4.0"}
+      {:amqp, "~> 1.0"},
+      {:jsx, "2.8.2", override: true}, # amqp and tentacat depends on jsx
+      {:ranch, "1.5.0", override: true}, # https://github.com/pma/amqp/issues/99
+      {:ranch_proxy_protocol, "~> 2.0", override: true}, # https://github.com/pma/amqp/issues/99
+      {:poolboy, "~> 1.5"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:sibling_app_in_umbrella, in_umbrella: true},
