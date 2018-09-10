@@ -1,5 +1,8 @@
-defmodule RepoPoller.Domain.Repo do
-  alias RepoPoller.Domain.{Repo, Tag}
+defmodule Domain.Repos.Repo do
+  alias __MODULE__
+  alias Domain.Tags.Tag
+
+  @derive {Poison.Encoder, except: [:tags]}
 
   @enforce_keys [:name, :owner]
   @type t :: %__MODULE__{
@@ -15,7 +18,8 @@ defmodule RepoPoller.Domain.Repo do
     %{path: path} = URI.parse(url)
 
     [owner, repo_name] =
-      String.replace_leading(path, "/", "")
+      path
+      |> String.replace_leading("/", "")
       |> String.split("/")
 
     %Repo{owner: owner, name: repo_name}

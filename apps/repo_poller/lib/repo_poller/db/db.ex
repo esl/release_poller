@@ -1,5 +1,6 @@
 defmodule RepoPoller.DB do
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
 
   @table :repo_tags
 

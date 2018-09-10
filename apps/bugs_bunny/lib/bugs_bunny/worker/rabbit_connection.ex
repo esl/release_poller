@@ -12,7 +12,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
     @enforce_keys [:config]
     @type t :: %__MODULE__{
             connection: AMQP.Connection.t(),
-            channels: list(pid()),
+            channels: list(AMQP.Channel.t()),
             # TODO: use an ets table to persist the monitors
             monitors: [],
             config: config()
@@ -168,8 +168,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
         channel_pid != pid
       end)
 
-    worker =
-      get_client(config)
+    {:ok, channel} =
+      config
+      |> get_client()
       |> start_channel(conn)
 
     monitors
@@ -179,13 +180,13 @@ defmodule BugsBunny.Worker.RabbitConnection do
     |> case do
       # if nil means DOWN message already handled and monitor already removed
       nil ->
-        {:noreply, %State{state | channels: [worker | new_channels]}}
+        {:noreply, %State{state | channels: [channel | new_channels]}}
 
       {ref, _} = returned ->
         true = Process.demonitor(ref)
         new_monitors = List.delete(monitors, returned)
 
-        {:noreply, %State{state | channels: [worker | new_channels], monitors: new_monitors}}
+        {:noreply, %State{state | channels: [channel | new_channels], monitors: new_monitors}}
     end
   end
 
@@ -242,14 +243,15 @@ defmodule BugsBunny.Worker.RabbitConnection do
   defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
     Logger.info("[Rabbit] connected")
     %{pid: pid} = connection
-    Process.link(pid)
+    true = Process.link(pid)
 
     num_channels = Keyword.get(config, :channels, @default_channels)
 
     channels =
       for _ <- 1..num_channels do
         {:ok, channel} =
-          get_client(config)
+          config
+          |> get_client()
           |> start_channel(connection)
 
         channel
@@ -281,6 +283,10 @@ defmodule BugsBunny.Worker.RabbitConnection do
       {:error, reason} = error ->
         Logger.error("[Rabbit] error starting channel reason: #{inspect(reason)}")
         error
+
+      error ->
+        Logger.error("[Rabbit] error starting channel reason: #{inspect(error)}")
+        {:error, error}
     end
   end
 

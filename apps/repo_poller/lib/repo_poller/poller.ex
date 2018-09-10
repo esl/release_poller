@@ -3,11 +3,14 @@ defmodule RepoPoller.Poller do
   require Logger
 
   alias RepoPoller.DB
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
+  alias Domain.Jobs.NewReleaseJob
+  alias Domain.Serializers.NewReleaseJobSerializer
   alias RepoPoller.Repository.Service
 
   defmodule State do
-    @enforce_keys [:repo]
+    @enforce_keys [:repo, :pool_id]
 
     @type adapter :: module()
     @type interval :: non_neg_integer()
@@ -124,7 +127,8 @@ defmodule RepoPoller.Poller do
   @spec update_repo_tags(Repo.t(), list(Tag.t()), State.t()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
   defp update_repo_tags(repo, tags, state) do
-    DB.get_tags(repo)
+    repo
+    |> DB.get_tags()
     |> Tag.new_tags(tags)
     |> case do
       [] ->
@@ -147,11 +151,12 @@ defmodule RepoPoller.Poller do
          tags,
          retries
        ) do
+    job = NewReleaseJob.new(repo, tags)
     BugsBunny.with_channel(pool_id, fn error_or_channel ->
       with {:ok, channel} <- error_or_channel,
-           encoded_tags <- Poison.encode!(tags),
+           job_payload <- NewReleaseJobSerializer.serialize!(job),
            :ok <- Logger.info("publishing new releases for #{owner}/#{name}"),
-           :ok <- publish_new_tags(channel, encoded_tags) do
+           :ok <- publish_new_tags(channel, job_payload) do
         :ok = DB.save(repo)
         {:ok, %State{state | repo: repo}}
       else
@@ -163,7 +168,7 @@ defmodule RepoPoller.Poller do
     end)
   end
 
-  @spec publish_new_tags(AMQP.Channel.t(), String.t()) :: :ok | AMQP.Basic.error()
+  @spec publish_new_tags(AMQP.Channel.t(), String.t() | iodata()) :: :ok | AMQP.Basic.error()
   defp publish_new_tags(channel, payload) do
     # pass general config options when publishing new tags e.g :persistent, :mandatory, :immediate etc
     config = get_rabbitmq_config()

@@ -1,7 +1,7 @@
 defmodule RepoPoller.Domain.RepoTest do
   use ExUnit.Case, async: true
 
-  alias RepoPoller.Domain.Repo
+  alias Domain.Repos.Repo
 
   test "creates a new repo" do
     assert %Repo{name: "dialyxir", owner: "jeremyjh"} ==

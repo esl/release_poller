@@ -5,7 +5,8 @@ defmodule RepoPoller.PollerTest do
 
   alias RepoPoller.Poller
   alias RepoPoller.Repository.GithubFake
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
   alias RepoPoller.DB
 
   alias BugsBunny.FakeRabbitMQ
@@ -33,7 +34,6 @@ defmodule RepoPoller.PollerTest do
     ]
 
     rabbitmq_conn_pool = [
-      :repo_poller,
       :rabbitmq_conn_pool,
       pool_id: pool_id,
       name: {:local, pool_id},

@@ -11,7 +11,7 @@
 
     @impl true
     def consume(_channel, _queue, _consumer_pid \\ nil, _options \\ []) do
-      {:ok, ""}
+      {:ok, "tag"}
     end
 
     @impl true

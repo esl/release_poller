@@ -1,6 +1,6 @@
-defmodule RepoPoller.Domain.Tag do
-  alias RepoPoller.Helpers.Map, as: HelperMap
-  alias RepoPoller.Domain.Tag
+defmodule Domain.Tags.Tag do
+  alias Domain.Helpers.Map, as: HelperMap
+  alias __MODULE__
 
   @derive [Poison.Encoder]
 

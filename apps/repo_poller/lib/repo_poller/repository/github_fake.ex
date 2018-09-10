@@ -1,7 +1,8 @@
 defmodule RepoPoller.Repository.GithubFake do
   @behaviour RepoPoller.Repository.Adapter
 
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
 
   @spec get_tags(Repo.t()) ::
           {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, map()}

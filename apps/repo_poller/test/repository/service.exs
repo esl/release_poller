@@ -3,7 +3,8 @@ defmodule RepoPoller.Api.GithubTest do
   import Mock
 
   alias RepoPoller.Repository.{Service, Github, GithubFake}
-  alias RepoPoller.Domain.{Repo, Tag}
+  alias Domain.Repos.Repo
+  alias Domain.Tags.Tag
   alias Tentacat.Repositories.Tags
 
   setup do
@@ -13,7 +14,7 @@ defmodule RepoPoller.Api.GithubTest do
 
   test "calls real github adapter", %{repo: repo} do
     lambda_list = fn _, _, _ ->
-      [ ]
+      []
     end
 
     with_mock Tags, list: lambda_list do

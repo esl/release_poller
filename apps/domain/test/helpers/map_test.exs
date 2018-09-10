@@ -1,7 +1,7 @@
-defmodule RepoPoller.Helpers.MapTest do
+defmodule Domain.Helpers.MapTest do
   use ExUnit.Case, async: true
 
-  alias RepoPoller.Helpers.Map, as: HelperMap
+  alias Domain.Helpers.Map, as: HelperMap
 
   test "safely maps the keys of a map into existing atoms" do
     map = %{

@@ -2,7 +2,7 @@ defmodule RepoPoller.PollerSupervisor do
   use Supervisor
 
   alias RepoPoller.Poller
-  alias RepoPoller.Domain.Repo
+  alias Domain.Repos.Repo
   alias RepoPoller.DB
 
   def start_link(_) do
