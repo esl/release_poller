@@ -2,55 +2,78 @@ defmodule DockerApi do
   @version "v1.37"
   @endpoint URI.encode_www_form("/var/run/docker.sock")
   @protocol "http+unix"
+  @url "#{@protocol}://#{@endpoint}/#{@version}"
+  @json_header {"Content-Type", "application/json"}
 
   alias DockerApi.Tar
 
+  def create_layer(payload, wait \\ true) do
+    container_id = create_container(payload)
+
+    new_image_id =
+      container_id
+      |> start_container()
+      |> maybe_wait_container(wait)
+      |> commit(%{})
+
+    container_id
+    |> stop_container()
+    |> remove_container()
+
+    new_image_id
+  end
+
   def commit(container_id, payload) do
-    # commit image
-    {:ok, %{body: body}} =
-      HTTPoison.post(
-        "#{@protocol}://#{@endpoint}/#{@version}/commit?container=#{container_id}",
-        Poison.encode!(payload),
-        [{"Content-Type", "application/json"}]
-      )
+    {:ok, %{body: body, status_code: 201}} =
+      HTTPoison.post("#{@url}/commit?container=#{container_id}", Poison.encode!(payload), [
+        @json_header
+      ])
 
     %{"Id" => image_id} = Poison.decode!(body)
     image_id
   end
 
-  def create_container(payload, name) do
-    {:ok, %{body: body}} =
-      HTTPoison.post(
-        "#{@protocol}://#{@endpoint}/#{@version}/containers/create?name=#{name}",
-        Poison.encode!(payload),
-        [{"Content-Type", "application/json"}]
-      )
+  def create_container(payload, params \\ %{}) do
+    {:ok, %{body: body, status_code: 201}} =
+      "#{@url}/containers/create"
+      |> URI.parse()
+      |> Map.put(:query, URI.encode_query(params))
+      |> URI.to_string()
+      |> HTTPoison.post(Poison.encode!(payload), [@json_header])
 
     %{"Id" => container_id} = Poison.decode!(body)
     container_id
   end
 
+  def remove_container(container_id) do
+    {:ok, %{status_code: 204}} =
+      HTTPoison.delete("#{@url}/containers/#{container_id}", "", [@json_header])
+
+    :ok
+  end
+
   def start_container(container_id) do
-    {:ok, _} =
-      HTTPoison.post(
-        "#{@protocol}://#{@endpoint}/#{@version}/containers/#{container_id}/start",
-        "",
-        [
-          {"Content-Type", "application/json"}
-        ]
-      )
+    {:ok, %{status_code: 204}} =
+      HTTPoison.post("#{@url}/containers/#{container_id}/start", "", [@json_header])
 
     container_id
   end
 
-  def wait_container(container_id) do
-    {:ok, _} =
-      HTTPoison.post(
-        "#{@protocol}://#{@endpoint}/#{@version}/containers/#{container_id}/wait",
-        "",
-        [],
-        timeout: :infinity,
-        recv_timeout: :infinity
+  def stop_container(container_id) do
+    {:ok, %{status_code: 204}} =
+      HTTPoison.post("#{@url}/containers/#{container_id}/stop", "", [@json_header])
+
+    container_id
+  end
+
+  def maybe_wait_container(container_id, true), do: wait_container(container_id)
+  def maybe_wait_container(container_id, false), do: container_id
+
+  def wait_container(container_id, timeout \\ :infinity) do
+    {:ok, %{status_code: 200}} =
+      HTTPoison.post("#{@url}/containers/#{container_id}/wait", "", [],
+        timeout: timeout,
+        recv_timeout: timeout
       )
 
     container_id
@@ -60,11 +83,9 @@ defmodule DockerApi do
     final_path = Tar.tar(input_path, File.cwd!())
     archive_payload = File.read!(final_path)
 
-    {:ok, _} =
+    {:ok, %{status_code: 200}} =
       HTTPoison.put(
-        "#{@protocol}://#{@endpoint}/#{@version}/containers/#{container_id}/archive?path=#{
-          output_path
-        }",
+        "#{@url}/containers/#{container_id}/archive?path=#{output_path}",
         archive_payload,
         [{"Content-Type", "application/tar"}]
       )
@@ -73,12 +94,15 @@ defmodule DockerApi do
   end
 
   def pull(image) do
-    {:ok, _} =
-      HTTPoison.post(
-        "#{@protocol}://#{@endpoint}/#{@version}/images/create?fromImage=#{image}",
-        "",
-        []
-      )
+    {:ok, %{status_code: 200}} =
+      HTTPoison.post("#{@url}/images/create?fromImage=#{image}", "", [])
+
+    :ok
+  end
+
+  def create_volume(payload) do
+    {:ok, %{status_code: 201}} =
+      HTTPoison.post("#{@url}/volumes/create", Poison.encode!(payload), [@json_header])
 
     :ok
   end
