@@ -12,25 +12,25 @@ defmodule DockerApi.Tar do
       input_path
       |> File.ls!()
       |> Enum.filter(&(!String.starts_with?(&1, ".git")))
+      |> Enum.map(&Path.join(input_path, &1))
 
-    File.cd!(input_path, fn ->
-      filename = Path.basename(input_path)
-      destination_path = Path.join([output_path, "#{filename}.tar"])
-      do_tar(files, destination_path)
-    end)
+    filename = Path.basename(input_path)
+    destination_path = Path.join([output_path, "#{filename}.tar"])
+    do_tar(files, destination_path)
   end
 
   defp tar_file(input_path, output_path) do
-    Path.dirname(input_path)
-    |> File.cd!(fn ->
-      filename = Path.basename(input_path)
-      destination_path = Path.join([output_path, "#{filename}.tar"])
-      do_tar(filename, destination_path)
-    end)
+    filename = Path.basename(input_path)
+    destination_path = Path.join([output_path, "#{filename}.tar"])
+    do_tar(input_path, destination_path)
   end
 
   defp do_tar(files, destination_path) when is_list(files) do
-    files = Enum.map(files, &to_charlist/1)
+    files =
+      Enum.map(files, fn file ->
+        {Path.basename(file) |> to_charlist(), to_charlist(file)}
+      end)
+
     :erl_tar.create(destination_path, files)
     destination_path
   end
