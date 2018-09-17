@@ -27,8 +27,16 @@ defmodule DockerApi.DockerBuild do
   end
 
   defp exec({"FROM", image}, _image_id) do
-    DockerApi.pull(image)
-    DockerApi.create_layer(%{"Image" => image}, false)
+    [base_image | rest] = String.split(image)
+    name =
+      # support for `FROM elixir:latest as elixir` and `FROM elixir:latest`
+      case rest do
+        [] -> ""
+        [as, container_name] when as in ["AS", "as"] -> container_name
+      end
+
+    DockerApi.pull(base_image)
+    DockerApi.create_layer(%{"Image" => base_image, "ContainerName" => name}, false)
   end
 
   defp exec({"COPY", args}, image_id) do

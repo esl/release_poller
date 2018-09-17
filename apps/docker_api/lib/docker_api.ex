@@ -34,6 +34,10 @@ defmodule DockerApi do
   end
 
   def create_container(payload, params \\ %{}) do
+    name = Map.get(payload, "ContainerName", "")
+
+    params = if name != "", do: Map.merge(params, %{name: name}), else: params
+
     {:ok, %{body: body, status_code: 201}} =
       "#{@url}/containers/create"
       |> URI.parse()
