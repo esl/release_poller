@@ -87,12 +87,18 @@ defmodule DockerApi do
     final_path = Tar.tar(input_path, File.cwd!())
     archive_payload = File.read!(final_path)
 
+    query_params =
+      URI.encode_query(%{
+        "path" => output_path,
+        "noOverwriteDirNonDir" => false
+      })
+
     {:ok, %{status_code: 200}} =
-      HTTPoison.put(
-        "#{@url}/containers/#{container_id}/archive?path=#{output_path}",
-        archive_payload,
-        [{"Content-Type", "application/tar"}]
-      )
+      "#{@url}/containers/#{container_id}/archive"
+      |> URI.parse()
+      |> Map.put(:query, query_params)
+      |> URI.to_string()
+      |> HTTPoison.put(archive_payload, [{"Content-Type", "application/tar"}])
 
     :ok
   end

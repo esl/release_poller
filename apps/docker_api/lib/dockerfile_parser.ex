@@ -31,7 +31,7 @@ defmodule DockerApi.DockerfileParser do
       line == "" || Regex.match?(@comment, line) ->
         nil
 
-      # continuation are not instructions
+      # continuations are not instructions
       continuation? ->
         if Regex.match?(@continuation, line) do
           # remove trailing continuation (\)
@@ -58,7 +58,7 @@ defmodule DockerApi.DockerfileParser do
     acc
   end
 
-  # first line - accomulator empty
+  # first line - accumulator empty
   defp join({:continue, _} = val, []) do
     [val]
   end
