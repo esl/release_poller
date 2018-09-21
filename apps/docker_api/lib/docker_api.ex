@@ -1,4 +1,6 @@
 defmodule DockerApi do
+  require Logger
+
   @version "v1.37"
   @endpoint URI.encode_www_form("/var/run/docker.sock")
   @protocol "http+unix"
@@ -7,7 +9,7 @@ defmodule DockerApi do
 
   alias DockerApi.Tar
 
-  def create_layer(payload, wait \\ true) do
+  def create_layer(payload, wait \\ false) do
     container_id = create_container(payload)
 
     new_image_id =
@@ -30,6 +32,14 @@ defmodule DockerApi do
       ])
 
     %{"Id" => image_id} = Poison.decode!(body)
+
+    # ImageId comes in the form of sha256:IMGAGE_ID and the only part that we are
+    # interested in is in the IMAGE_ID
+    image_id =
+      image_id
+      |> String.slice(7..-1)
+
+    Logger.info("image created #{image_id}")
     image_id
   end
 
@@ -46,28 +56,35 @@ defmodule DockerApi do
       |> HTTPoison.post(Poison.encode!(payload), [@json_header])
 
     %{"Id" => container_id} = Poison.decode!(body)
+    Logger.info("container created #{container_id}")
     container_id
   end
 
   def remove_container(container_id) do
-    {:ok, %{status_code: 204}} =
-      HTTPoison.delete("#{@url}/containers/#{container_id}", "", [@json_header])
+    Logger.info("removing intermediate container #{container_id}")
+
+    {:ok, %{status_code: 204}} = HTTPoison.delete("#{@url}/containers/#{container_id}")
 
     :ok
   end
 
   def start_container(container_id) do
     {:ok, %{status_code: 204}} =
-      HTTPoison.post("#{@url}/containers/#{container_id}/start", "", [@json_header])
+      HTTPoison.post("#{@url}/containers/#{container_id}/start", "", [])
 
     container_id
   end
 
   def stop_container(container_id) do
-    {:ok, %{status_code: 204}} =
-      HTTPoison.post("#{@url}/containers/#{container_id}/stop", "", [@json_header])
-
-    container_id
+    "#{@url}/containers/#{container_id}/stop"
+    |> URI.parse()
+    |> Map.put(:query, URI.encode_query(%{t: 5}))
+    |> URI.to_string()
+    |> HTTPoison.post("", [], timeout: 30_000, recv_timeout: 30_000)
+    |> case do
+      {:ok, %{status_code: status}} when status in [204, 304] -> container_id
+      {:error, _} = error -> error
+    end
   end
 
   def maybe_wait_container(container_id, true), do: wait_container(container_id)
@@ -100,12 +117,19 @@ defmodule DockerApi do
       |> URI.to_string()
       |> HTTPoison.put(archive_payload, [{"Content-Type", "application/tar"}])
 
-    :ok
+    File.rm!(final_path)
+
+    container_id
   end
 
   def pull(image) do
+    Logger.info("pulling image #{image}")
+
     {:ok, %{status_code: 200}} =
-      HTTPoison.post("#{@url}/images/create?fromImage=#{image}", "", [])
+      HTTPoison.post("#{@url}/images/create?fromImage=#{image}", "", [],
+        timeout: :infinity,
+        recv_timeout: :infinity
+      )
 
     :ok
   end

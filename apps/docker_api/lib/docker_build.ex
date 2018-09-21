@@ -17,7 +17,7 @@ defmodule DockerApi.DockerBuild do
 
   defp exec({"ENV", args}, image_id, _path) do
     # add support for both `ENV MIX_ENV prod` and `ENV MIX_ENV=prod`
-    env = Regex.run(@env, args)
+    env = Regex.run(@env, args, capture: :all_but_first)
     unless env, do: raise("invalid env")
     DockerApi.create_layer(%{"Image" => image_id, "Env" => [Enum.join(env, "=")]})
   end
@@ -29,7 +29,7 @@ defmodule DockerApi.DockerBuild do
         {:exec_form, cmd} -> cmd
       end
 
-    DockerApi.create_layer(%{"Image" => image_id, "CMD" => command})
+    DockerApi.create_layer(%{"Image" => image_id, "CMD" => command}, true)
   end
 
   defp exec({"FROM", image}, _image_id, _path) do
@@ -42,13 +42,27 @@ defmodule DockerApi.DockerBuild do
       end
 
     DockerApi.pull(base_image)
-    DockerApi.create_layer(%{"Image" => base_image, "ContainerName" => name}, false)
+    DockerApi.create_layer(%{"Image" => base_image, "ContainerName" => name})
   end
 
   defp exec({"COPY", args}, image_id, path) do
     [origin, dest] = String.split(args, " ")
     absolute_origin = [path, origin] |> Path.join() |> Path.expand()
-    # DockerApi.create_layer(%{"Image" => image_id, "ContainerName" => name}, false)
+
+    container_id =
+      %{"Image" => image_id}
+      |> DockerApi.create_container()
+      |> DockerApi.start_container()
+
+    new_image_id =
+      DockerApi.upload_file(container_id, absolute_origin, dest)
+      |> DockerApi.commit(%{})
+
+    container_id
+    |> DockerApi.stop_container()
+    |> DockerApi.remove_container()
+
+    new_image_id
   end
 
   defp exec({"WORKDIR", wd_path}, image_id, _path) do
@@ -65,7 +79,14 @@ defmodule DockerApi.DockerBuild do
     DockerApi.create_layer(%{"Image" => image_id, "CMD" => command})
   end
 
-  defp exec({"ENTRYPOINT", args}, image_id, _path) do
+  defp exec({"ENTRYPOINT", command}, image_id, _path) do
+    command =
+      case parse_args(command) do
+        {:shell_form, cmd} -> String.split(cmd, " ")
+        {:exec_form, cmd} -> cmd
+      end
+
+    DockerApi.create_layer(%{"Image" => image_id, "ENTRYPOINT" => command})
   end
 
   defp exec({"LABEL", args}, image_id, _path) do
