@@ -98,6 +98,54 @@ defmodule DockerApi.DockerBuild do
   defp exec({"ARG", args}, image_id, _path) do
   end
 
+  defp exec({"VOLUME", args}, image_id, _path) do
+    String.split(args, ":")
+    |> case do
+      [volume] ->
+        DockerApi.create_layer(%{"Image" => image_id, "Volumes" => %{"#{volume}" => %{}}})
+
+      [src, dst] ->
+        # %{
+        #   "Image" => image_id,
+        #   "HostConfig" => %{
+        #     "Mounts" => [
+        #       %{
+        #         "Target" => dst,
+        #         "Source" => src,
+        #         "Type" => "bind",
+        #         "Consistency" => "default",
+        #         "ReadOnly" => false
+        #       }
+        #     ]
+        #   }
+        # }
+        %{
+          "Image" => image_id,
+          "Volumes" => %{"#{dst}" => %{}},
+          "HostConfig" => %{
+            "Binds" => [args]
+          }
+        }
+        |> DockerApi.create_layer()
+    end
+  end
+
+  # defp exec({"VOLUME", args}, image_id, _path) do
+  #   if args =~ ":" do
+  #     %{
+  #       "Image" => image_id,
+  #       "Volumes" => %{"#{args}" => %{}},
+  #       "HostConfig" => %{
+  #         "Binds" => [args]
+  #       }
+  #     }
+  #     |> IO.inspect(label: "PAYLOAD")
+  #     |> DockerApi.create_layer()
+  #   else
+  #     DockerApi.create_layer(%{"Image" => image_id, "Volumes" => %{"#{args}" => %{}}})
+  #   end
+  # end
+
   # parse instruction arguments as shell form `CMD command param1 param2` and
   # as exec form `CMD ["executable","param1","param2"]` or JSON Array form
   defp parse_args(args) do
