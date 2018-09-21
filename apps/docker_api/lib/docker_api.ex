@@ -9,7 +9,8 @@ defmodule DockerApi do
 
   alias DockerApi.Tar
 
-  def create_layer(payload, wait \\ false) do
+  def create_layer(payload, opts \\ []) do
+    wait = Keyword.get(opts, :wait, false)
     container_id = create_container(payload)
 
     new_image_id =
@@ -27,9 +28,11 @@ defmodule DockerApi do
 
   def commit(container_id, payload) do
     {:ok, %{body: body, status_code: 201}} =
-      HTTPoison.post("#{@url}/commit?container=#{container_id}", Poison.encode!(payload), [
-        @json_header
-      ])
+      "#{@url}/commit"
+      |> URI.parse()
+      |> Map.put(:query, URI.encode_query(%{"container" => container_id}))
+      |> URI.to_string()
+      |> HTTPoison.post(Poison.encode!(payload), [@json_header])
 
     %{"Id" => image_id} = Poison.decode!(body)
 
@@ -87,17 +90,36 @@ defmodule DockerApi do
     end
   end
 
+  def maybe_wait_container(container_id, timeout) when is_integer(timeout) do
+    # wait some time for a container to be up and running
+    # there's no way to know if a container is blocked running a CMD, ENTRYPOINT
+    # instruction, or is running a long task
+    # TODO: maybe use container inspect to see its current state or docker events
+    case wait_container(container_id, timeout) do
+      {:error, %HTTPoison.Error{reason: :timeout}} ->
+        container_id
+
+      {:error, _} = error ->
+        error
+
+      container_id ->
+        container_id
+    end
+  end
+
   def maybe_wait_container(container_id, true), do: wait_container(container_id)
   def maybe_wait_container(container_id, false), do: container_id
 
   def wait_container(container_id, timeout \\ :infinity) do
-    {:ok, %{status_code: 200}} =
-      HTTPoison.post("#{@url}/containers/#{container_id}/wait", "", [],
-        timeout: timeout,
-        recv_timeout: timeout
-      )
-
-    container_id
+    HTTPoison.post("#{@url}/containers/#{container_id}/wait", "", [],
+      timeout: timeout,
+      recv_timeout: timeout
+    )
+    |> case do
+      {:ok, %{status_code: 200}} -> container_id
+      {:ok, %{status_code: _} = response} -> {:error, response}
+      {:error, _} = error -> error
+    end
   end
 
   def upload_file(container_id, input_path, output_path) do
@@ -126,10 +148,11 @@ defmodule DockerApi do
     Logger.info("pulling image #{image}")
 
     {:ok, %{status_code: 200}} =
-      HTTPoison.post("#{@url}/images/create?fromImage=#{image}", "", [],
-        timeout: :infinity,
-        recv_timeout: :infinity
-      )
+      "#{@url}/images/create"
+      |> URI.parse()
+      |> Map.put(:query, URI.encode_query(%{"fromImage" => image}))
+      |> URI.to_string()
+      |> HTTPoison.post("", [], timeout: :infinity, recv_timeout: :infinity)
 
     :ok
   end

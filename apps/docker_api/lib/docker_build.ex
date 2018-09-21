@@ -29,7 +29,7 @@ defmodule DockerApi.DockerBuild do
         {:exec_form, cmd} -> cmd
       end
 
-    DockerApi.create_layer(%{"Image" => image_id, "CMD" => command}, true)
+    DockerApi.create_layer(%{"Image" => image_id, "CMD" => command}, wait: true)
   end
 
   defp exec({"FROM", image}, _image_id, _path) do
