@@ -17,11 +17,10 @@ defmodule DockerApi do
       container_id
       |> start_container()
       |> maybe_wait_container(wait)
+      |> stop_container()
       |> commit(%{})
 
-    container_id
-    |> stop_container()
-    |> remove_container()
+    remove_container(container_id)
 
     new_image_id
   end
