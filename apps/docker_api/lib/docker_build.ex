@@ -5,22 +5,35 @@ defmodule DockerApi.DockerBuild do
 
   alias DockerApi.Utils.Map, as: MapUtils
 
-  def build(instructions, path) do
+  @spec build(list(String.t()), Path.t()) :: {:ok, DockerRemoteAPI.image_id()} | {:error, any()}
+  def(build(instructions, path)) do
     steps = length(instructions)
 
-    instructions
-    |> Enum.reduce({%{}, 1}, fn {cmd, args}, {context, step} ->
-      cmd = String.upcase(cmd)
-      Logger.info("STEP #{step}/#{steps} : #{cmd} #{args}")
+    try do
+      {ctx, _} =
+        instructions
+        |> Enum.reduce({%{}, 1}, fn {cmd, args}, {context, step} ->
+          cmd = String.upcase(cmd)
+          Logger.info("STEP #{step}/#{steps} : #{cmd} #{args}")
 
-      case exec({cmd, args}, context, path) do
-        new_image_id when is_binary(new_image_id) ->
-          {Map.put(context, "Image", new_image_id), step + 1}
+          case exec({cmd, args}, context, path) do
+            {:error, error} ->
+              # fail fast
+              throw(error)
 
-        new_ctx when is_map(new_ctx) ->
-          {new_ctx, step + 1}
-      end
-    end)
+            {:ok, new_image_id} when is_binary(new_image_id) ->
+              {Map.put(context, "Image", new_image_id), step + 1}
+
+            new_ctx when is_map(new_ctx) ->
+              {new_ctx, step + 1}
+          end
+        end)
+
+      {:ok, Map.fetch!(ctx, "Image")}
+    catch
+      error ->
+        {:error, error}
+    end
   end
 
   defp exec({"ENV", args}, context, _path) do
@@ -35,7 +48,7 @@ defmodule DockerApi.DockerBuild do
   defp exec({"RUN", command}, context, _path) do
     command =
       case parse_args(command) do
-        {:shell_form, cmd} ->
+        {:shell_form, _cmd} ->
           ["/bin/sh", "-c", command]
 
         {:exec_form, cmd} ->
@@ -65,20 +78,17 @@ defmodule DockerApi.DockerBuild do
     [origin, dest] = String.split(args, " ")
     absolute_origin = [path, origin] |> Path.join() |> Path.expand()
 
-    container_id =
-      context
-      |> DockerApi.create_container()
-      |> DockerApi.start_container()
-
-    new_image_id =
-      DockerApi.upload_file(container_id, absolute_origin, dest)
-      |> DockerApi.commit(%{})
-
-    container_id
-    |> DockerApi.stop_container()
-    |> DockerApi.remove_container()
-
-    new_image_id
+    with {:ok, container_id} <- DockerApi.create_container(context),
+         {:ok, ^container_id} <- DockerApi.start_container(container_id),
+         {:ok, ^container_id} <- DockerApi.upload_file(container_id, absolute_origin, dest),
+         {:ok, new_image_id} <- DockerApi.commit(container_id, %{}),
+         {:ok, ^container_id} <- DockerApi.stop_container(container_id),
+         :ok <- DockerApi.remove_container(container_id) do
+      {:ok, new_image_id}
+    else
+      {:error, _} = error ->
+        error
+    end
   end
 
   defp exec({"WORKDIR", wd_path}, context, _path) do
@@ -108,20 +118,21 @@ defmodule DockerApi.DockerBuild do
     |> DockerApi.create_layer()
   end
 
-  defp exec({"LABEL", args}, context, _path) do
-  end
+  # TODO:
+  # defp exec({"LABEL", args}, context, _path) do
+  # end
 
-  defp exec({"EXPOSE", args}, context, _path) do
-  end
+  # defp exec({"EXPOSE", args}, context, _path) do
+  # end
 
-  defp exec({"ARG", args}, context, _path) do
-  end
+  # defp exec({"ARG", args}, context, _path) do
+  # end
 
   defp exec({"VOLUME", args}, context, _path) do
     String.split(args, ":")
     |> case do
       [_volume] ->
-        throw("Only Bind Mounts are Supported")
+        {:error, "Only Bind Mounts are Supported"}
 
       [_src, _dst] ->
         mounts = %{
@@ -130,15 +141,19 @@ defmodule DockerApi.DockerBuild do
           }
         }
 
-        new_image_id =
-          Map.merge(context, mounts)
-          |> DockerApi.create_layer()
+        Map.merge(context, mounts)
+        |> DockerApi.create_layer()
+        |> case do
+          {:ok, new_image_id} ->
+            new_ctx =
+              %{"Image" => new_image_id}
+              |> Map.merge(mounts)
 
-        new_ctx =
-          %{"Image" => new_image_id}
-          |> Map.merge(mounts)
+            MapUtils.contextual_merge(context, new_ctx)
 
-        MapUtils.contextual_merge(context, new_ctx)
+          {:error, _} = error ->
+            error
+        end
     end
   end
 
