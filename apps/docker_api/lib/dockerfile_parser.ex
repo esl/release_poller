@@ -3,7 +3,8 @@ defmodule DockerApi.DockerfileParser do
   @continuation ~r/^.*\\\s*$/
   @instruction ~r/^\s*(\w+)\s+(.*)$/
 
-  def parse(path) do
+  @spec parse!(Path.t()) :: list(String.t()) | no_return()
+  def parse!(path) do
     {parsed_lines, _} =
       File.read!(path)
       |> String.split("\n")
@@ -20,10 +21,13 @@ defmodule DockerApi.DockerfileParser do
         end
       end)
 
-    parsed_lines
-    |> Enum.reverse()
+    Enum.reverse(parsed_lines)
   end
 
+  @spec parse_line(String.t(), boolean()) ::
+          nil
+          | {:continue, String.t() | {String.t(), String.t()}}
+          | {:end, String.t() | {String.t(), String.t()}}
   defp parse_line(line, continuation?) do
     line = String.trim(line)
 
@@ -42,7 +46,7 @@ defmodule DockerApi.DockerfileParser do
 
       true ->
         # line: "RUN set -xe \\"
-        [_instruction, command, value] = Regex.run(@instruction, line)
+        [command, value] = Regex.run(@instruction, line, capture: :all_but_first)
         # ["RUN set -xe \\", "RUN", "set -xe \\"]
         if Regex.match?(@continuation, line) do
           # remove trailing continuation (\)
@@ -53,11 +57,10 @@ defmodule DockerApi.DockerfileParser do
     end
   end
 
-  # nil line (comment/empty line)
-  defp join(nil, acc) do
-    acc
-  end
-
+  @spec join(parsed_line, list()) :: list()
+        when parsed_line:
+               {:continue, String.t() | {String.t(), String.t()}}
+               | {:end, String.t() | {String.t(), String.t()}}
   # first line - accumulator empty
   defp join({:continue, _} = val, []) do
     [val]
