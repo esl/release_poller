@@ -1,4 +1,5 @@
 defmodule DockerApi.Tar do
+  @spec tar(Path.t(), Path.t()) :: {:ok, Path.t()} | {:error, {:file.filename(), any()}}
   def tar(input_path, output_path) do
     if File.dir?(input_path) do
       tar_dir(input_path, output_path)
@@ -31,8 +32,10 @@ defmodule DockerApi.Tar do
         {Path.basename(file) |> to_charlist(), to_charlist(file)}
       end)
 
-    :erl_tar.create(destination_path, files)
-    destination_path
+    case :erl_tar.create(destination_path, files) do
+      :ok -> {:ok, destination_path}
+      {:error, _} = error -> error
+    end
   end
 
   defp do_tar(file, destination_path) do
