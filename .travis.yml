@@ -1,7 +1,15 @@
 language: elixir
+install: true
 sudo: false
+before_install: 
+ - docker run --detach --rm --hostname bugs-bunny --name roger_rabbit -p 5672:5672 -p 15672:15672 rabbitmq:3.7.7-management
+ - until curl --silent -XGET --fail http://127.0.0.1:15672; do printf '.'; sleep 1; done 
 elixir:
   - '1.7.2'
+before_script: 
+  - "mix deps.get"                                                                                                                 
+script: 
+  - "mix test"
 otp_release:
   - '21.0'
 cache:
