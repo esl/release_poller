@@ -16,7 +16,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
   @moduletag :integration
   @queue "test.consumer.queue"
-  # TODO - whey are there two setup blocks ?
+  
   setup do
     rabbitmq_config = [
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672")
