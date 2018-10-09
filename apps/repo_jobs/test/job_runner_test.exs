@@ -39,10 +39,11 @@ defmodule RepoJobs.JobRunnerTest do
       Repo.new("https://github.com/elixir-lang/elixir")
       |> Repo.add_tags([tag])
 
-    {:ok, base_dir: base_dir, repo: repo}
+    Application.put_env(:repo_jobs, :tmp_dir, base_dir)
+    {:ok, repo: repo}
   end
 
-  test "runs a task on job", %{base_dir: base_dir, repo: repo} do
+  test "runs a task on job", %{repo: repo} do
     %{tags: [tag]} = repo
 
     task = %Task{
@@ -61,7 +62,8 @@ defmodule RepoJobs.JobRunnerTest do
       assert env == [
                {"ELIXIR_TAG", tag.name},
                {"ELIXIR_ZIP", tag.zipball_url},
-               {"ELIXIR_TAR", tag.tarball_url}
+               {"ELIXIR_TAR", tag.tarball_url},
+               {"ELIXIR_COMMIT", ""}
              ]
 
       :ok
@@ -71,10 +73,10 @@ defmodule RepoJobs.JobRunnerTest do
              repo
              |> Repo.set_tasks([task])
              |> NewReleaseJob.new(tag)
-             |> JobRunner.run(base_dir)
+             |> JobRunner.run()
   end
 
-  test "fails to run a task on job", %{base_dir: base_dir, repo: repo} do
+  test "fails to run a task on job", %{repo: repo} do
     %{tags: [tag]} = repo
 
     task = %Task{
@@ -99,14 +101,14 @@ defmodule RepoJobs.JobRunnerTest do
                  repo
                  |> Repo.set_tasks([task])
                  |> NewReleaseJob.new(tag)
-                 |> JobRunner.run(base_dir)
+                 |> JobRunner.run()
       end)
 
     assert log =~
              "[error] error running task https://github.com/f@k3/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
   end
 
-  test "fails to fetch a task", %{base_dir: base_dir, repo: repo} do
+  test "fails to fetch a task", %{repo: repo} do
     %{tags: [tag]} = repo
 
     task = %Task{
@@ -126,14 +128,14 @@ defmodule RepoJobs.JobRunnerTest do
                  repo
                  |> Repo.set_tasks([task])
                  |> NewReleaseJob.new(tag)
-                 |> JobRunner.run(base_dir)
+                 |> JobRunner.run()
       end)
 
     assert log =~
              "[error] error running task https://github.com/f@k3/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
   end
 
-  test "runs multiple tasks on a job", %{base_dir: base_dir, repo: repo} do
+  test "runs multiple tasks on a job", %{repo: repo} do
     %{tags: [tag]} = repo
 
     task1 = %Task{
@@ -158,7 +160,8 @@ defmodule RepoJobs.JobRunnerTest do
       assert env == [
                {"ELIXIR_TAG", tag.name},
                {"ELIXIR_ZIP", tag.zipball_url},
-               {"ELIXIR_TAR", tag.tarball_url}
+               {"ELIXIR_TAR", tag.tarball_url},
+               {"ELIXIR_COMMIT", ""}
              ]
 
       :ok
@@ -168,13 +171,13 @@ defmodule RepoJobs.JobRunnerTest do
              repo
              |> Repo.set_tasks([task1, task2])
              |> NewReleaseJob.new(tag)
-             |> JobRunner.run(base_dir)
+             |> JobRunner.run()
 
     assert {:ok, ^task1} = result1
     assert {:ok, ^task2} = result2
   end
 
-  test "fails to run one of multiple tasks", %{base_dir: base_dir, repo: repo} do
+  test "fails to run one of multiple tasks", %{repo: repo} do
     %{tags: [tag]} = repo
 
     task1 = %Task{
@@ -206,7 +209,7 @@ defmodule RepoJobs.JobRunnerTest do
                  repo
                  |> Repo.set_tasks([task1, task2])
                  |> NewReleaseJob.new(tag)
-                 |> JobRunner.run(base_dir)
+                 |> JobRunner.run()
 
         assert {:error, ^task1} = result1
         assert {:ok, ^task2} = result2
@@ -216,7 +219,7 @@ defmodule RepoJobs.JobRunnerTest do
              "[error] error running task https://github.com/f@k31/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
   end
 
-  test "fails to fetch one of multiple tasks", %{base_dir: base_dir, repo: repo} do
+  test "fails to fetch one of multiple tasks", %{repo: repo} do
     %{tags: [tag]} = repo
 
     task1 = %Task{
@@ -246,7 +249,7 @@ defmodule RepoJobs.JobRunnerTest do
                  repo
                  |> Repo.set_tasks([task1, task2])
                  |> NewReleaseJob.new(tag)
-                 |> JobRunner.run(base_dir)
+                 |> JobRunner.run()
 
         assert {:ok, ^task1} = result1
         assert {:error, ^task2} = result2
@@ -254,5 +257,85 @@ defmodule RepoJobs.JobRunnerTest do
 
     assert log =~
              "[error] error running task https://github.com/f@k32/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
+  end
+
+  test "run a task with build_file", %{repo: repo} do
+    %{tags: [tag]} = repo
+
+    task = %Task{
+      runner: Domain.TaskMockRunner,
+      build_file: "build_files/dockerbuild"
+    }
+
+    Domain.TaskMockRunner
+    |> expect(:exec, fn ^task, env ->
+      assert env == [
+               {"ELIXIR_TAG", tag.name},
+               {"ELIXIR_ZIP", tag.zipball_url},
+               {"ELIXIR_TAR", tag.tarball_url},
+               {"ELIXIR_COMMIT", ""}
+             ]
+
+      :ok
+    end)
+
+    assert [{:ok, ^task}] =
+             repo
+             |> Repo.set_tasks([task])
+             |> NewReleaseJob.new(tag)
+             |> JobRunner.run()
+  end
+
+  test "fails to run a task with build_file", %{repo: repo} do
+    %{tags: [tag]} = repo
+
+    task = %Task{
+      runner: Domain.TaskMockRunner,
+      build_file: "build_files/dockerbuild"
+    }
+
+    Domain.TaskMockRunner
+    |> expect(:exec, 1, fn _task, _env -> {:error, :no_container} end)
+
+    log =
+      capture_log(fn ->
+        assert [{:error, ^task}] =
+                 repo
+                 |> Repo.set_tasks([task])
+                 |> NewReleaseJob.new(tag)
+                 |> JobRunner.run()
+      end)
+
+    assert log =~
+             "[error] error running task build_files/dockerbuild for elixir-lang/elixir#v1.7.2 reason: :no_container"
+  end
+
+  test "runs multiple types of tasks", %{repo: repo} do
+    %{tags: [tag]} = repo
+
+    task1 = %Task{
+      runner: Domain.TaskMockRunner,
+      build_file: "build_files/dockerbuild"
+    }
+
+    task2 = %Task{
+      url: "https://github.com/f@k3/fake",
+      runner: Domain.TaskMockRunner,
+      source: Domain.TaskMockSource
+    }
+
+    Domain.TaskMockSource
+    |> expect(:fetch, fn task, _tmp_dir ->
+      {:ok, task}
+    end)
+
+    Domain.TaskMockRunner
+    |> expect(:exec, 2, fn _task, _env -> :ok end)
+
+    assert [{:ok, ^task1}, {:ok, ^task2}] =
+             repo
+             |> Repo.set_tasks([task1, task2])
+             |> NewReleaseJob.new(tag)
+             |> JobRunner.run()
   end
 end
