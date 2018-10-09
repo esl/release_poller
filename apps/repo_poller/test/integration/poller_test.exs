@@ -17,7 +17,12 @@ defmodule RepoPoller.Integration.PollerTest do
   setup do
     DB.clear()
     # setup test queue in RabbitMQ
-    {:ok, conn} = Connection.open()
+
+    rabbitmq_config = [
+      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672")
+    ]
+
+    {:ok, conn} = Connection.open(rabbitmq_config)
     {:ok, channel} = Channel.open(conn)
     {:ok, %{queue: queue}} = Queue.declare(channel, @queue)
 
@@ -33,6 +38,7 @@ defmodule RepoPoller.Integration.PollerTest do
 
     rabbitmq_config = [
       channels: 1,
+      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: @queue,
       exchange: "",
       caller: caller

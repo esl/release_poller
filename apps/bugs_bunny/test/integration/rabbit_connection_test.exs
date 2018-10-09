@@ -11,6 +11,7 @@ defmodule BugsBunny.Integration.RabbitConnectionTest do
   setup do
     rabbitmq_config = [
       channels: 5,
+      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: "test.queue",
       exchange: "",
       client: RabbitMQ
