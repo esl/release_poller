@@ -6,10 +6,9 @@ defmodule RepoPoller.PollerSupervisor do
   alias Domain.Tasks.Task
   alias RepoPoller.{DB, Config}
 
-  @priv_dir :repo_poller |> :code.priv_dir() |> to_string()
-
-  def start_link(_) do
-    Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(args \\ []) do
+    name = Keyword.get(args, :name, __MODULE__)
+    Supervisor.start_link(__MODULE__, [], name: name)
   end
 
   def init(_) do
@@ -55,7 +54,7 @@ defmodule RepoPoller.PollerSupervisor do
           :pop
 
         build_file_path ->
-          expanded_path = Path.join([@priv_dir, build_file_path])
+          expanded_path = Path.join([Config.priv_dir(), build_file_path])
           {build_file_path, expanded_path}
       end)
 
