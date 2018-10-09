@@ -27,6 +27,7 @@ defmodule RepoPoller.PollerTest do
 
     rabbitmq_config = [
       channels: 1,
+      port: String.to_integer( System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: "new_releases.queue",
       exchange: "",
       client: FakeRabbitMQ,

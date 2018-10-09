@@ -14,6 +14,7 @@ defmodule RepoJobs.ConsumerTest do
 
     rabbitmq_config = [
       channels: 1,
+      port: String.to_integer( System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: "test.queue",
       exchange: "",
       client: FakeRabbitMQ,
