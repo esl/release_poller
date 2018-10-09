@@ -16,12 +16,10 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
   @moduletag :integration
   @queue "test.consumer.queue"
-  #TODO - how come there are two setup blocks ?
+  # TODO - whey are there two setup blocks ?
   setup do
-    # setup test queue in RabbitMQ
-
     rabbitmq_config = [
-      port: String.to_integer( System.get_env("POLLER_RMQ_PORT") || "5672"),
+      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672")
     ]
 
     {:ok, conn} = Connection.open(rabbitmq_config)
@@ -42,7 +40,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
     rabbitmq_config = [
       channels: 1,
-      port: String.to_integer( System.get_env("POLLER_RMQ_PORT") || "5672"),
+      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: @queue,
       exchange: "",
       client: RabbitMQ

@@ -13,7 +13,7 @@ defmodule BugsBunny.Integration.ApiTest do
 
     rabbitmq_config = [
       channels: 1,
-      port: String.to_integer( System.get_env("POLLER_RMQ_PORT") || "5672"),
+      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       # fire and forget queue
       queue: "",
       exchange: "",
