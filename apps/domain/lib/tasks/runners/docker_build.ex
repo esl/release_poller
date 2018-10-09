@@ -11,7 +11,7 @@ defmodule Domain.Tasks.Runners.DockerBuild do
     |> inject_env(extra_env ++ env)
     |> DockerBuild.build("")
     |> case do
-      {:ok, image_id} ->
+      {:ok, _image_id} ->
         # TODO: push image
         :ok
 
