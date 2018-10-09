@@ -56,12 +56,7 @@ defmodule Domain.Tasks.Task do
   defp expand_build_file(%{build_file: nil} = task), do: task
 
   defp expand_build_file(%{build_file: path} = task) do
-    priv_dir = :code.priv_dir(:repo_poller) |> to_string()
-
-    content =
-      Path.join([priv_dir, path])
-      |> File.read!()
-
+    content = File.read!(path)
     %Task{task | build_file_content: content}
   end
 end
