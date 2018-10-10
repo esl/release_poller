@@ -39,4 +39,8 @@ defmodule RepoJobs.Config do
     get_rabbitmq_config()
     |> Keyword.get(:reconnect, 5000)
   end
+
+  def temp_dir() do
+    Application.get_env(:repo_jobs, :tmp_dir, System.tmp_dir!())
+  end
 end

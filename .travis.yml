@@ -1,17 +1,17 @@
 language: elixir
 install: true
 sudo: false
-before_install: 
+before_install:
  - docker run --detach --rm --hostname bugs-bunny --name roger_rabbit -p 5672 rabbitmq:3.7.7
- - export POLLER_RMQ_PORT=$(docker inspect --format '{{ (index (index .NetworkSettings.Ports "5672/tcp") 0).HostPort }}' roger_rabbit )   
- - until curl --silent -XGET --fail http://127.0.0.1:${POLLER_RMQ_PORT} &> /dev/null ; do printf '.'; sleep 1; done 
+ - export POLLER_RMQ_PORT=$(docker inspect --format '{{ (index (index .NetworkSettings.Ports "5672/tcp") 0).HostPort }}' roger_rabbit )
+ - until curl --silent -XGET --fail http://127.0.0.1:${POLLER_RMQ_PORT} &> /dev/null ; do printf '.'; sleep 1; done
 elixir:
   - '1.7.2'
-before_script: 
+before_script:
   - "mix local.hex --force"
-  - "mix local.rebar --force"  
-  - "mix deps.get"                                                                                                                 
-script: 
+  - "mix local.rebar --force"
+  - "mix deps.get"
+script:
   - "mix test"
 otp_release:
   - '21.0'
@@ -19,3 +19,5 @@ cache:
   directories:
     - _build
     - deps
+services:
+  - docker
