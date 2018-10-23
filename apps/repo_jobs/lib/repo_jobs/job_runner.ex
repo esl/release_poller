@@ -6,6 +6,8 @@ defmodule RepoJobs.JobRunner do
   alias Domain.Tasks.Task
   alias RepoJobs.Config
 
+  @type env_tuple :: {String.t(), String.t()}
+  @type env :: [env_tuple()]
 
   @doc """
   Fetch and Executes all tasks assigned to a new tag/release of a dependency,
@@ -64,6 +66,7 @@ defmodule RepoJobs.JobRunner do
   end
 
   # Returns a list of tuples to be passed as environment variables to each task
+  @spec generate_env(NewReleaseJob.t()) :: env()
   defp generate_env(%{repo: %{name: repo_name}, new_tag: tag}) do
     repo_name = String.upcase(repo_name)
 
