@@ -16,7 +16,7 @@ defmodule Domain.Repos.RepoTest do
   end
 
   test "creates a new repo with interval" do
-    assert %Repo{polling_interval: 60_000} =
+    assert %Repo{polling_interval: 60} =
              Repo.new(1, "https://github.com/jeremyjh/dialyxir", 60)
   end
 

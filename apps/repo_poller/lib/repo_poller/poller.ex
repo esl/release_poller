@@ -13,27 +13,25 @@ defmodule RepoPoller.Poller do
     @enforce_keys [:repo, :pool_id]
 
     @type adapter :: module()
-    @type interval :: non_neg_integer()
 
     @type t :: %__MODULE__{
             repo: Repo.t(),
             adapter: adapter(),
-            interval: interval(),
             pool_id: atom(),
             caller: pid()
           }
-    defstruct(repo: nil, adapter: nil, interval: nil, pool_id: nil, caller: nil)
+    defstruct(repo: nil, adapter: nil, pool_id: nil, caller: nil)
   end
 
   ##############
   # Client API #
   ##############
 
-  def start_link({%{name: repo_name}, _adapter, _pool_id, _interval} = args) do
+  def start_link({%{name: repo_name}, _adapter, _pool_id} = args) do
     GenServer.start_link(__MODULE__, args, name: String.to_atom(repo_name))
   end
 
-  def start_link({_caller, %{name: repo_name}, _adapter, _pool_id, _interval} = args) do
+  def start_link({_caller, %{name: repo_name}, _adapter, _pool_id} = args) do
     GenServer.start_link(__MODULE__, args, name: String.to_atom(repo_name))
   end
 
@@ -51,23 +49,22 @@ defmodule RepoPoller.Poller do
   # Server Callbacks #
   ####################
 
-  @spec init({Repo.t(), State.adapter(), atom(), State.interval()}) :: {:ok, State.t()}
+  @spec init({Repo.t(), State.adapter(), atom()}) :: {:ok, State.t()}
   @impl true
-  def init({repo, adapter, pool_id, interval}) do
-    state = %State{repo: repo, adapter: adapter, pool_id: pool_id, interval: interval}
+  def init({repo, adapter, pool_id}) do
+    state = %State{repo: repo, adapter: adapter, pool_id: pool_id}
     schedule_poll(0)
     {:ok, state}
   end
 
   @doc false
-  @spec init({pid(), Repo.t(), State.adapter(), atom(), State.interval()}) :: {:ok, State.t()}
+  @spec init({pid(), Repo.t(), State.adapter(), atom()}) :: {:ok, State.t()}
   @impl true
-  def init({caller, repo, adapter, pool_id, interval}) do
+  def init({caller, repo, adapter, pool_id}) do
     state = %State{
       repo: repo,
       adapter: adapter,
       pool_id: pool_id,
-      interval: interval,
       caller: caller
     }
 
@@ -77,7 +74,7 @@ defmodule RepoPoller.Poller do
   @impl true
   def handle_info(
         :poll,
-        %{repo: repo, adapter: adapter, interval: interval, caller: caller} = state
+        %{repo: repo, adapter: adapter, caller: caller} = state
       ) do
     repo_name = Repo.uniq_name(repo)
     Logger.info("polling info for repo: #{repo_name}")
@@ -86,7 +83,7 @@ defmodule RepoPoller.Poller do
       {:ok, tags} = res ->
         case update_repo_tags(repo, tags, state) do
           {:ok, new_state} ->
-            schedule_poll(interval)
+            schedule_poll(repo.polling_interval)
             if caller, do: send(caller, res)
             {:noreply, new_state}
 
@@ -103,7 +100,7 @@ defmodule RepoPoller.Poller do
 
       {:error, reason} = err ->
         Logger.error("error polling info for repo: #{repo_name} reason: #{inspect(reason)}")
-        schedule_poll(interval)
+        schedule_poll(repo.polling_interval)
         if caller, do: send(caller, err)
         {:noreply, state}
     end
@@ -118,7 +115,7 @@ defmodule RepoPoller.Poller do
   # Internals #
   #############
 
-  @spec schedule_poll(State.interval()) :: reference()
+  @spec schedule_poll(Repo.interval()) :: reference()
   defp schedule_poll(interval) do
     Process.send_after(self(), :poll, interval)
   end

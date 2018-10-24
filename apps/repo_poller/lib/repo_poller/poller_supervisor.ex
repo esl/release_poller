@@ -26,9 +26,9 @@ defmodule RepoPoller.PollerSupervisor do
           pool_id = Config.get_connection_pool_id()
 
           for {url, adapter, interval, tasks} <- repos do
-            repo = setup_repo(url, tasks)
+            repo = setup_repo(url, interval * 1000, tasks)
 
-            Supervisor.child_spec({Poller, {repo, adapter, pool_id, interval * 1000}},
+            Supervisor.child_spec({Poller, {repo, adapter, pool_id}},
               id: "poller_#{repo.name}"
             )
           end
@@ -38,11 +38,40 @@ defmodule RepoPoller.PollerSupervisor do
     Supervisor.init(children, opts)
   end
 
-  @spec setup_repo(String.t(), keyword()) :: Repo.t()
-  defp setup_repo(url, tasks_attrs) do
+  def start_child(json_repo, "github") do
+    pool_id = Config.get_connection_pool_id()
+
+    %{
+      "repository_url" => url,
+      "polling_interval" => interval,
+      "id" => id
+    } = Poison.decode!(json_repo)
+
+    repo = Repo.new(id, url, interval * 1000)
+
+    child_spec =
+      Supervisor.child_spec(
+        {
+          Poller,
+          {repo, RepoPoller.Repository.Github, pool_id}
+        },
+        id: "poller_#{repo.name}"
+      )
+
+    Supervisor.start_child(__MODULE__, child_spec)
+  end
+
+  def start_child(repo, adapter) do
+    {:error, "#{adapter} not supported"}
+  end
+
+  @spec setup_repo(String.t(), Repo.interval(), keyword()) :: Repo.t()
+  defp setup_repo(url, interval, tasks_attrs) do
     tasks = Enum.map(tasks_attrs, &setup_task/1)
 
-    Repo.new(url)
+    # Generate a random id for repos from config
+    :rand.uniform(1_000_000)
+    |> Repo.new(url, interval)
     |> Repo.set_tasks(tasks)
   end
 

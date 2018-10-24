@@ -9,7 +9,8 @@ defmodule Domain.Repos.Repo do
 
   @derive {Poison.Encoder, except: [:tags]}
 
-  @one_hour 3600
+  # 1 Hour in ms
+  @one_hour 3_600_000
 
   @enforce_keys [:id, :url, :polling_interval]
   @type interval :: non_neg_integer()
@@ -36,7 +37,7 @@ defmodule Domain.Repos.Repo do
       |> String.replace_leading("/", "")
       |> String.split("/")
 
-    %Repo{id: id, url: url, owner: owner, name: repo_name, polling_interval: interval * 1000}
+    %Repo{id: id, url: url, owner: owner, name: repo_name, polling_interval: interval}
   end
 
   @doc """
