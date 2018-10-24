@@ -34,7 +34,14 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
     job =
       Poison.decode!(payload,
         as: %NewReleaseJob{
-          repo: %Repo{name: nil, owner: nil, tasks: [%Task{}]},
+          repo: %Repo{
+            id: nil,
+            url: nil,
+            polling_interval: nil,
+            name: nil,
+            owner: nil,
+            tasks: [%Task{}]
+          },
           new_tag: %Tag{name: nil}
         },
         keys: :atoms!

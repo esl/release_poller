@@ -6,7 +6,7 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
   alias Domain.Tags.Tag
 
   test "creates a single new release job" do
-    repo = Repo.new("https://github.com/elixir-lang/elixir")
+    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
 
     tag = %Tag{
       commit: %{
@@ -24,12 +24,19 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
 
     assert job == %NewReleaseJob{
              new_tag: tag,
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               id: 1,
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
   end
 
   test "creates a new release job" do
-    repo = Repo.new("https://github.com/elixir-lang/elixir")
+    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
 
     tags = [
       %Tag{
@@ -59,12 +66,19 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
                tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
                zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
              },
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               id: 1,
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               polling_interval: 3_600_000,
+               tags: []
+             }
            }
   end
 
   test "creates multiple release jobs" do
-    repo = Repo.new("https://github.com/elixir-lang/elixir")
+    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
 
     tag1 = %Tag{
       commit: %{
@@ -96,12 +110,26 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
 
     assert job1 == %NewReleaseJob{
              new_tag: tag1,
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               id: 1,
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
 
     assert job2 == %NewReleaseJob{
              new_tag: tag2,
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               id: 1,
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
   end
 end
