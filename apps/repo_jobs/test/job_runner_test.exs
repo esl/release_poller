@@ -36,7 +36,7 @@ defmodule RepoJobs.JobRunnerTest do
     }
 
     repo =
-      Repo.new("https://github.com/elixir-lang/elixir")
+      Repo.new(1, "https://github.com/elixir-lang/elixir")
       |> Repo.add_tags([tag])
 
     Application.put_env(:repo_jobs, :tmp_dir, base_dir)

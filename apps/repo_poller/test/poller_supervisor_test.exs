@@ -39,7 +39,16 @@ defmodule RepoPoller.PollerSupervisorTest do
     ] do
       pid = start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
       assert [{"poller_elixir", child_pid, :worker, _modules}] = Supervisor.which_children(pid)
-      assert %{repo: %{owner: "404", name: "elixir", tasks: [task]}} = Poller.state(child_pid)
+
+      assert %{
+               repo: %{
+                 url: "https://github.com/404/elixir",
+                 owner: "404",
+                 name: "elixir",
+                 tasks: [task]
+               }
+             } = Poller.state(child_pid)
+
       assert %{build_file_content: "This is a test file\n", runner: DockerBuild} = task
     end
   end

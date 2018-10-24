@@ -57,29 +57,31 @@ defmodule RepoPoller.PollerTest do
       type: :supervisor
     })
 
-    {:ok, pool_id: pool_id}
+    repo_id = :rand.uniform(1_000_000)
+
+    {:ok, pool_id: pool_id, repo_id: repo_id}
   end
 
-  test "gets tags and re-schedule poll", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/elixir-lang/elixir")
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 50}})
+  test "gets tags and re-schedule poll", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/elixir-lang/elixir", 50)
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, tags}, 1000
     assert_receive {:ok, ^tags}
   end
 
-  test "gets repo tags and store them", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/elixir-lang/elixir")
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+  test "gets repo tags and store them", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/elixir-lang/elixir")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
     %{tags: tags} = DB.get_repo(repo)
     assert length(tags) == 21
   end
 
-  test "gets repo tags and update them", %{pool_id: pool_id} do
+  test "gets repo tags and update them", %{pool_id: pool_id, repo_id: repo_id} do
     repo =
-      Repo.new("https://github.com/elixir-lang/elixir")
+      Repo.new(repo_id, "https://github.com/elixir-lang/elixir")
       |> Repo.add_tags([
         %Tag{
           commit: %{
@@ -183,7 +185,7 @@ defmodule RepoPoller.PollerTest do
       ])
 
     :ok = DB.save(repo)
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
 
@@ -192,41 +194,41 @@ defmodule RepoPoller.PollerTest do
     assert length(tags) == 21
   end
 
-  test "handles rate limit errors", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/rate-limit/fake")
+  test "handles rate limit errors", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/rate-limit/fake")
 
     assert capture_log(fn ->
-             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
              Poller.poll(pid)
              assert_receive {:error, :rate_limit, retry}
              assert retry > 0
            end) =~ "rate limit reached for repo: rate-limit/fake retrying in 50 ms"
   end
 
-  test "re-schedule poll after rate limit errors", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/rate-limit/fake")
+  test "re-schedule poll after rate limit errors", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/rate-limit/fake", 50)
 
     assert capture_log(fn ->
-             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 50}})
+             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
              Poller.poll(pid)
              assert_receive {:error, :rate_limit, retry}
              assert_receive {:error, :rate_limit, ^retry}
            end) =~ "rate limit reached for repo: rate-limit/fake retrying in 50 ms"
   end
 
-  test "handles errors when polling fails due to a custom error", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/404/fake")
+  test "handles errors when polling fails due to a custom error", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/404/fake")
 
     assert capture_log(fn ->
-             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
              Poller.poll(pid)
              assert_receive {:error, :not_found}
            end) =~ "error polling info for repo: 404/fake reason: :not_found"
   end
 
-  test "handles errors when trying to get a channel", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/elixir-lang/elixir")
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+  test "handles errors when trying to get a channel", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/elixir-lang/elixir")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
 
     BugsBunny.with_channel(pool_id, fn {:ok, _channel} ->
       log =
@@ -241,11 +243,11 @@ defmodule RepoPoller.PollerTest do
     end)
   end
 
-  test "handles errors when publishing a job fails", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/error/fake")
+  test "handles errors when publishing a job fails", %{pool_id: pool_id, repo_id: repo_id} do
+    repo = Repo.new(repo_id, "https://github.com/error/fake")
 
     assert capture_log(fn ->
-             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 5_000}})
+             pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
              Poller.poll(pid)
              assert_receive {:job_not_published, _}
              refute_receive {:job_published, _}

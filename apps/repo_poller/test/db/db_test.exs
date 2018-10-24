@@ -7,7 +7,8 @@ defmodule ReleasePoller.DBTest do
 
   setup do
     dialyxir =
-      Repo.new("https://github.com/jeremyjh/dialyxir")
+      :rand.uniform(1_000_000)
+      |> Repo.new("https://github.com/jeremyjh/dialyxir")
       |> Repo.add_tags([
         %Tag{name: "v0.3.1"},
         %Tag{name: "v0.3.0"},
@@ -28,7 +29,8 @@ defmodule ReleasePoller.DBTest do
       ])
 
     elixir =
-      Repo.new("https://github.com/elixir-lang/elixir")
+      :rand.uniform(1_000_000)
+      |> Repo.new("https://github.com/elixir-lang/elixir")
       |> Repo.add_tags([
         %Tag{name: "v1.7.2"},
         %Tag{name: "v1.7.1"},
@@ -90,7 +92,7 @@ defmodule ReleasePoller.DBTest do
     test "gets repo tags", %{repos: repos} do
       [dialyxir, elixir] = repos
       # not saved
-      other = Repo.new("https://github.com/fake/other")
+      other = Repo.new(64321, "https://github.com/fake/other")
 
       assert DB.get_repo(dialyxir) == dialyxir
       assert DB.get_repo(elixir) == elixir
