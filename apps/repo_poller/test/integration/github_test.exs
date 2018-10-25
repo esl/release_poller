@@ -9,8 +9,7 @@ defmodule RepoPoller.Integration.GithubTest do
   # flaky test: due to rate limiting from github, so we need to ensure we rather success
   # or we ware rate-limited
   test "fetch all tags from repo" do
-    :rand.uniform(1_000_000)
-    |> Repo.new("https://github.com/elixir-lang/elixir")
+    Repo.new("https://github.com/elixir-lang/elixir")
     |> Github.get_tags()
     |> case do
       {:ok, tags} ->

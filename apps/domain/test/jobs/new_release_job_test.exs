@@ -6,7 +6,7 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
   alias Domain.Tags.Tag
 
   test "creates a single new release job" do
-    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
 
     tag = %Tag{
       commit: %{
@@ -25,7 +25,6 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
     assert job == %NewReleaseJob{
              new_tag: tag,
              repo: %Repo{
-               id: 1,
                url: "https://github.com/elixir-lang/elixir",
                name: "elixir",
                owner: "elixir-lang",
@@ -36,7 +35,7 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
   end
 
   test "creates a new release job" do
-    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
 
     tags = [
       %Tag{
@@ -67,7 +66,6 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
                zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
              },
              repo: %Repo{
-               id: 1,
                url: "https://github.com/elixir-lang/elixir",
                name: "elixir",
                owner: "elixir-lang",
@@ -78,7 +76,7 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
   end
 
   test "creates multiple release jobs" do
-    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
 
     tag1 = %Tag{
       commit: %{
@@ -111,7 +109,6 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
     assert job1 == %NewReleaseJob{
              new_tag: tag1,
              repo: %Repo{
-               id: 1,
                url: "https://github.com/elixir-lang/elixir",
                name: "elixir",
                owner: "elixir-lang",
@@ -123,7 +120,6 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
     assert job2 == %NewReleaseJob{
              new_tag: tag2,
              repo: %Repo{
-               id: 1,
                url: "https://github.com/elixir-lang/elixir",
                name: "elixir",
                owner: "elixir-lang",

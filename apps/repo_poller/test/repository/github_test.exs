@@ -8,7 +8,7 @@ defmodule RepoPoller.Api.GithubTest do
   alias Tentacat.Repositories.Tags
 
   setup do
-    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
     {:ok, repo: repo}
   end
 

@@ -38,9 +38,9 @@ defmodule RepoPoller.PollerSupervisor do
     Supervisor.init(children, opts)
   end
 
-  def start_child(%{repository_url: url, polling_interval: interval, id: id}, "github") do
+  def start_child(%{repository_url: url, polling_interval: interval}, "github") do
     pool_id = Config.get_connection_pool_id()
-    repo = Repo.new(id, url, interval * 1000)
+    repo = Repo.new(url, interval * 1000)
 
     child_spec =
       Supervisor.child_spec(
@@ -55,7 +55,6 @@ defmodule RepoPoller.PollerSupervisor do
   end
 
   def start_child(repo, adapter) do
-    IO.inspect repo
     {:error, "#{adapter} not supported"}
   end
 
@@ -63,9 +62,7 @@ defmodule RepoPoller.PollerSupervisor do
   defp setup_repo(url, interval, tasks_attrs) do
     tasks = Enum.map(tasks_attrs, &setup_task/1)
 
-    # Generate a random id for repos from config
-    :rand.uniform(1_000_000)
-    |> Repo.new(url, interval)
+    Repo.new(url, interval)
     |> Repo.set_tasks(tasks)
   end
 

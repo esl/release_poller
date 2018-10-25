@@ -10,7 +10,7 @@ defmodule Domain.Serializers.NewReleaseJobSerializer.Test do
   alias Domain.Tasks.Runners.Make
 
   setup do
-    repo = Repo.new(1, "https://github.com/elixir-lang/elixir")
+    repo = Repo.new("https://github.com/elixir-lang/elixir")
 
     tag = %Tag{
       commit: %{
@@ -31,7 +31,7 @@ defmodule Domain.Serializers.NewReleaseJobSerializer.Test do
     job = NewReleaseJob.new(repo, tag)
 
     assert JobSerializer.serialize!(job) ==
-             "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\",\"id\":1},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
+             "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
   end
 
   test "serializes a new release job with tasks", %{repo: repo, tag: tag} do
@@ -43,7 +43,7 @@ defmodule Domain.Serializers.NewReleaseJobSerializer.Test do
       |> NewReleaseJob.new(tag)
 
     assert JobSerializer.serialize!(job) ==
-             "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[{\"url\":\"https://github.com/f@k31/fake\",\"source\":\"Elixir.Domain.Tasks.Sources.Github\",\"runner\":\"Elixir.Domain.Tasks.Runners.Make\",\"path\":null,\"env\":[],\"commands\":[],\"build_file_content\":[],\"build_file\":null}],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\",\"id\":1},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
+             "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[{\"url\":\"https://github.com/f@k31/fake\",\"source\":\"Elixir.Domain.Tasks.Sources.Github\",\"runner\":\"Elixir.Domain.Tasks.Runners.Make\",\"path\":null,\"env\":[],\"commands\":[],\"build_file_content\":[],\"build_file\":null}],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
   end
 
   test "deserialize a new release job", %{repo: repo, tag: tag} do

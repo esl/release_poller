@@ -35,7 +35,6 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
       Poison.decode!(payload,
         as: %NewReleaseJob{
           repo: %Repo{
-            id: nil,
             url: nil,
             polling_interval: nil,
             name: nil,

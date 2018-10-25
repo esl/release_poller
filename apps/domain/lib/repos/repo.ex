@@ -12,11 +12,10 @@ defmodule Domain.Repos.Repo do
   # 1 Hour in ms
   @one_hour 3_600_000
 
-  @enforce_keys [:id, :url, :polling_interval]
+  @enforce_keys [:url, :polling_interval]
   @type interval :: non_neg_integer()
   @type id :: non_neg_integer()
   @type t :: %__MODULE__{
-          id: id(),
           name: String.t(),
           owner: String.t(),
           url: String.t(),
@@ -26,10 +25,10 @@ defmodule Domain.Repos.Repo do
           tasks: list(Task.t())
         }
 
-  defstruct id: nil, name: nil, owner: nil, url: nil, polling_interval: nil, tags: [], tasks: []
+  defstruct name: nil, owner: nil, url: nil, polling_interval: nil, tags: [], tasks: []
 
-  @spec new(id(), String.t(), interval()) :: Repo.t()
-  def new(id, url, interval \\ @one_hour) do
+  @spec new(String.t(), interval()) :: Repo.t()
+  def new(url, interval \\ @one_hour) do
     %{path: path} = URI.parse(url)
 
     [owner, repo_name] =
@@ -37,7 +36,7 @@ defmodule Domain.Repos.Repo do
       |> String.replace_leading("/", "")
       |> String.split("/")
 
-    %Repo{id: id, url: url, owner: owner, name: repo_name, polling_interval: interval}
+    %Repo{url: url, owner: owner, name: repo_name, polling_interval: interval}
   end
 
   @doc """

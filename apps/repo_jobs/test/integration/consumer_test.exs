@@ -99,7 +99,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
     start_supervised!({Consumer, {self(), pool_id}})
 
     payload =
-      "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\",\"id\":1},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
+      "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
 
     :ok = RabbitMQ.publish(channel, "", @queue, payload)
     assert_receive {:new_release_job, job}, 1000
@@ -116,7 +116,13 @@ defmodule RepoJobs.Integration.ConsumerTest do
                tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
                zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
              },
-             repo: %Repo{id: 1, url: "https://github.com/elixir-lang/elixir", name: "elixir", owner: "elixir-lang", tags: [], polling_interval: 3_600_000}
+             repo: %Repo{
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
   end
 
@@ -139,7 +145,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
       }
 
       repo =
-        Repo.new(1, "https://github.com/elixir-lang/elixir")
+        Repo.new("https://github.com/elixir-lang/elixir")
         |> Repo.add_tags([tag])
 
       {:ok, repo: repo}
