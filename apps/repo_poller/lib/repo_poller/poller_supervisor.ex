@@ -1,5 +1,5 @@
 defmodule RepoPoller.PollerSupervisor do
-  use Supervisor
+  use DynamicSupervisor
 
   alias RepoPoller.Poller
   alias Domain.Repos.Repo
@@ -8,54 +8,57 @@ defmodule RepoPoller.PollerSupervisor do
 
   def start_link(args \\ []) do
     name = Keyword.get(args, :name, __MODULE__)
-    Supervisor.start_link(__MODULE__, [], name: name)
+    DynamicSupervisor.start_link(__MODULE__, [], name: name)
   end
 
   def init(_) do
     # let the DB be managed by the supervisor so it won't be restarted unless the supervisor is restarted too
     DB.new()
+    DynamicSupervisor.init(strategy: :one_for_one)
+  end
 
-    children =
-      Config.get_repos()
-      |> case do
-        # don't start any child and don't ask for pool configs (for testing only)
-        [] ->
-          []
+  def start_child(%Repo{} = repo, adapter) do
+    pool_id = Config.get_connection_pool_id()
 
-        repos ->
-          pool_id = Config.get_connection_pool_id()
-
-          for {url, adapter, interval, tasks} <- repos do
-            repo = setup_repo(url, interval * 1000, tasks)
-
-            Supervisor.child_spec({Poller, {repo, adapter, pool_id}},
-              id: "poller_#{repo.name}"
-            )
-          end
-      end
-
-    opts = [strategy: :one_for_one]
-    Supervisor.init(children, opts)
+    DynamicSupervisor.start_child(__MODULE__, %{
+      id: "poller_#{repo.name}",
+      start: {Poller, :start_link, [{repo, adapter, pool_id}]},
+      restart: :transient
+    })
   end
 
   def start_child(%{repository_url: url, polling_interval: interval}, "github") do
     pool_id = Config.get_connection_pool_id()
     repo = Repo.new(url, interval * 1000)
 
-    child_spec =
-      Supervisor.child_spec(
-        {
-          Poller,
-          {repo, RepoPoller.Repository.Github, pool_id}
-        },
-        id: "poller_#{repo.name}"
-      )
-
-    Supervisor.start_child(__MODULE__, child_spec)
+    DynamicSupervisor.start_child(__MODULE__, %{
+      id: "poller_#{repo.name}",
+      start: {Poller, :start_link, [{repo, RepoPoller.Repository.Github, pool_id}]},
+      restart: :transient
+    })
   end
 
-  def start_child(repo, adapter) do
+  def start_child(_repo, adapter) do
     {:error, "#{adapter} not supported"}
+  end
+
+  def stop_child(repository_url) do
+    repo = Repo.new(repository_url)
+
+    try do
+      repo.name
+      |> String.to_existing_atom()
+      |> Process.whereis()
+      |> case do
+        nil ->
+          {:error, "Couldn't find repository process."}
+
+        pid when is_pid(pid) ->
+          DynamicSupervisor.terminate_child(__MODULE__, pid)
+      end
+    rescue
+      _ -> {:error, "Couldn't find repository process."}
+    end
   end
 
   @spec setup_repo(String.t(), Repo.interval(), keyword()) :: Repo.t()

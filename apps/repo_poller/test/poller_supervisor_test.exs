@@ -5,40 +5,28 @@ defmodule RepoPoller.PollerSupervisorTest do
   alias RepoPoller.{PollerSupervisor, Poller, DB, Config}
   alias Domain.Tasks.Runners.DockerBuild
   alias RepoPoller.Repository.GithubFake
+  alias Domain.Repos.Repo
+  alias Domain.Tasks.Task
 
   @tag capture_log: true
-  test "setups a supervision tree" do
-    get_repos_fn = fn ->
-      [
-        {"https://github.com/404/elixir", GithubFake, 3600,
-         [
-           [
-             runner: DockerBuild,
-             build_file: "build_files/dockerbuild_test"
-           ]
-         ]}
-      ]
-    end
+  test "setups a supervision tree with repo" do
+    file = Path.join([System.cwd!(), "test", "fixtures", "build_files", "dockerbuild_test"])
+    task = Task.new(runner: DockerBuild, build_file: file)
 
-    priv_dir_fn = fn ->
-      Path.join([System.cwd!(), "test", "fixtures"])
-    end
+    repo =
+      "https://github.com/404/elixir"
+      |> Repo.new()
+      |> Repo.set_tasks([task])
 
     get_connection_pool_id_fn = fn -> :random_id end
-
     new_fn = fn -> :ok end
 
     with_mocks [
-      {Config, [],
-       [
-         get_repos: get_repos_fn,
-         priv_dir: priv_dir_fn,
-         get_connection_pool_id: get_connection_pool_id_fn
-       ]},
+      {Config, [], [get_connection_pool_id: get_connection_pool_id_fn]},
       {DB, [:passthrough], [new: new_fn]}
     ] do
-      pid = start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
-      assert [{"poller_elixir", child_pid, :worker, _modules}] = Supervisor.which_children(pid)
+      start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
+      assert {:ok, child_pid} = PollerSupervisor.start_child(repo, GithubFake)
 
       assert %{
                repo: %{
@@ -50,6 +38,30 @@ defmodule RepoPoller.PollerSupervisorTest do
              } = Poller.state(child_pid)
 
       assert %{build_file_content: "This is a test file\n", runner: DockerBuild} = task
+    end
+  end
+
+  @tag capture_log: true
+  test "setups a supervision tree with map" do
+    repo = %{repository_url: "https://github.com/2-new-tags/erlang", polling_interval: 3600}
+    get_connection_pool_id_fn = fn -> :random_id end
+    new_fn = fn -> :ok end
+
+    with_mocks [
+      {Config, [], [get_connection_pool_id: get_connection_pool_id_fn]},
+      {DB, [:passthrough], [new: new_fn]}
+    ] do
+      start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
+      assert {:ok, child_pid} = PollerSupervisor.start_child(repo, "github")
+
+      assert %{
+               repo: %{
+                 url: "https://github.com/2-new-tags/erlang",
+                 owner: "2-new-tags",
+                 name: "erlang",
+                 tasks: []
+               }
+             } = Poller.state(child_pid)
     end
   end
 end
