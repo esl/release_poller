@@ -66,11 +66,17 @@ defmodule RepoPoller.Integration.PollerTest do
       type: :supervisor
     })
 
-    {:ok, pool_id: :test_pool}
+    n = :rand.uniform(1_000)
+    uniq_name = "test-#{n}"
+
+    {:ok, pool_id: :test_pool, name: uniq_name}
   end
 
-  test "place new job in rabbitmq to be processed later - single tag", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/new-tag/elixir")
+  test "place new job in rabbitmq to be processed later - single tag", %{
+    pool_id: pool_id,
+    name: name
+  } do
+    repo = Repo.new("https://github.com/new-tag/#{name}")
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
@@ -101,9 +107,10 @@ defmodule RepoPoller.Integration.PollerTest do
   end
 
   test "place multiple jobs in rabbitmq to be processed later - multiple new tags", %{
-    pool_id: pool_id
+    pool_id: pool_id,
+    name: name
   } do
-    repo = Repo.new("https://github.com/2-new-tags/elixir")
+    repo = Repo.new("https://github.com/2-new-tags/#{name}")
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
@@ -159,8 +166,8 @@ defmodule RepoPoller.Integration.PollerTest do
     end)
   end
 
-  test "doesn't publish new jobs", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/2-new-tags/elixir")
+  test "doesn't publish new jobs", %{pool_id: pool_id, name: name} do
+    repo = Repo.new("https://github.com/2-new-tags/#{name}")
     pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
 
     {:ok, tags} = GithubFake.get_tags(repo)
@@ -179,8 +186,8 @@ defmodule RepoPoller.Integration.PollerTest do
     end)
   end
 
-  test "only publishes new tags jobs", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/2-new-tags/elixir")
+  test "only publishes new tags jobs", %{pool_id: pool_id, name: name} do
+    repo = Repo.new("https://github.com/2-new-tags/#{name}")
     {:ok, [new_tag, tag]} = GithubFake.get_tags(repo)
     repo = Repo.add_tags(repo, [tag])
     :ok = DB.save(repo)

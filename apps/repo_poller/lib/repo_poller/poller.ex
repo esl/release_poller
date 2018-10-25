@@ -72,10 +72,7 @@ defmodule RepoPoller.Poller do
   end
 
   @impl true
-  def handle_info(
-        :poll,
-        %{repo: repo, adapter: adapter, caller: caller} = state
-      ) do
+  def handle_info(:poll, %{repo: repo, adapter: adapter, caller: caller} = state) do
     repo_name = Repo.uniq_name(repo)
     Logger.info("polling info for repo: #{repo_name}")
 
