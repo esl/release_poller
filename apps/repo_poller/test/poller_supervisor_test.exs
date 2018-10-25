@@ -43,7 +43,7 @@ defmodule RepoPoller.PollerSupervisorTest do
 
   @tag capture_log: true
   test "setups a supervision tree with map" do
-    repo = %{repository_url: "https://github.com/2-new-tags/erlang", polling_interval: 3600}
+    repo = %{repository_url: "https://github.com/404/erlang", polling_interval: 3600}
     get_connection_pool_id_fn = fn -> :random_id end
     new_fn = fn -> :ok end
 
@@ -52,12 +52,12 @@ defmodule RepoPoller.PollerSupervisorTest do
       {DB, [:passthrough], [new: new_fn]}
     ] do
       start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
-      assert {:ok, child_pid} = PollerSupervisor.start_child(repo, "github")
+      assert {:ok, child_pid} = PollerSupervisor.start_child(repo, GithubFake)
 
       assert %{
                repo: %{
-                 url: "https://github.com/2-new-tags/erlang",
-                 owner: "2-new-tags",
+                 url: "https://github.com/404/erlang",
+                 owner: "404",
                  name: "erlang",
                  tasks: []
                }
