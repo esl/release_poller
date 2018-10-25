@@ -38,15 +38,8 @@ defmodule RepoPoller.PollerSupervisor do
     Supervisor.init(children, opts)
   end
 
-  def start_child(json_repo, "github") do
+  def start_child(%{repository_url: url, polling_interval: interval, id: id}, "github") do
     pool_id = Config.get_connection_pool_id()
-
-    %{
-      "repository_url" => url,
-      "polling_interval" => interval,
-      "id" => id
-    } = Poison.decode!(json_repo)
-
     repo = Repo.new(id, url, interval * 1000)
 
     child_spec =
@@ -62,6 +55,7 @@ defmodule RepoPoller.PollerSupervisor do
   end
 
   def start_child(repo, adapter) do
+    IO.inspect repo
     {:error, "#{adapter} not supported"}
   end
 
