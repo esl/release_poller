@@ -3,7 +3,6 @@ defmodule RepoPoller.PollerSupervisor do
 
   alias RepoPoller.Poller
   alias Domain.Repos.Repo
-  alias Domain.Tasks.Task
   alias RepoPoller.{DB, Config}
 
   def start_link(args \\ []) do
@@ -17,8 +16,10 @@ defmodule RepoPoller.PollerSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_child(%Repo{} = repo, adapter) do
+  def start_child(%Repo{} = repo) do
     pool_id = Config.get_connection_pool_id()
+
+    adapter = setup_adapter(repo.adapter)
 
     DynamicSupervisor.start_child(__MODULE__, %{
       id: "poller_#{repo.name}",
@@ -30,6 +31,8 @@ defmodule RepoPoller.PollerSupervisor do
   def start_child(%{repository_url: url, polling_interval: interval, adapter: adapter}) do
     pool_id = Config.get_connection_pool_id()
     repo = Repo.new(url, interval * 1000)
+
+    adapter = setup_adapter(adapter)
 
     DynamicSupervisor.start_child(__MODULE__, %{
       id: "poller_#{repo.name}",
@@ -57,26 +60,9 @@ defmodule RepoPoller.PollerSupervisor do
     end
   end
 
-  @spec setup_repo(String.t(), Repo.interval(), keyword()) :: Repo.t()
-  defp setup_repo(url, interval, tasks_attrs) do
-    tasks = Enum.map(tasks_attrs, &setup_task/1)
+  defp setup_adapter(adapter) when is_atom(adapter), do: adapter
 
-    Repo.new(url, interval)
-    |> Repo.set_tasks(tasks)
-  end
-
-  @spec setup_task(keyword()) :: Task.t()
-  defp setup_task(task_attr) do
-    {_, new_attrs} =
-      Keyword.get_and_update(task_attr, :build_file, fn
-        nil ->
-          :pop
-
-        build_file_path ->
-          expanded_path = Path.join([Config.priv_dir(), build_file_path])
-          {build_file_path, expanded_path}
-      end)
-
-    Task.new(new_attrs)
+  defp setup_adapter(adapter) when is_binary(adapter) do
+    Module.concat(["RepoPoller.Repository", Macro.camelize(adapter)])
   end
 end

@@ -6,7 +6,6 @@ defmodule Domain.Services.Database do
 
   @callback get_all_repositories() :: {:ok, list(Repo.t())} | {:error, any()}
 
-  @impl true
   def get_all_repositories do
     Config.get_admin_domain()
     |> :rpc.call(ReleaseAdmin.Repository.Service, :all, [])
@@ -22,8 +21,8 @@ defmodule Domain.Services.Database do
   @spec to_repo(list(repository)) :: list(Repo.t())
   defp to_repo(repositories) do
     Enum.map(repositories, fn repo ->
-      %{polling_interval: polling_interval, repository_url: repository_url} = repo
-      Repo.new(repository_url, polling_interval)
+      %{polling_interval: polling_interval, repository_url: repository_url, adapter: adapter} = repo
+      Repo.new(repository_url, polling_interval * 1000, adapter)
     end)
   end
 end

@@ -15,7 +15,7 @@ defmodule RepoPoller.PollerSupervisorTest do
 
     repo =
       "https://github.com/404/elixir"
-      |> Repo.new()
+      |> Repo.new(3_600_000, GithubFake)
       |> Repo.set_tasks([task])
 
     get_connection_pool_id_fn = fn -> :random_id end
@@ -26,7 +26,7 @@ defmodule RepoPoller.PollerSupervisorTest do
       {DB, [:passthrough], [new: new_fn]}
     ] do
       start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
-      assert {:ok, child_pid} = PollerSupervisor.start_child(repo, GithubFake)
+      assert {:ok, child_pid} = PollerSupervisor.start_child(repo)
 
       assert %{
                repo: %{
