@@ -27,7 +27,7 @@ defmodule RepoPoller.PollerSupervisor do
     })
   end
 
-  def start_child(%{repository_url: url, polling_interval: interval}, adapter) do
+  def start_child(%{repository_url: url, polling_interval: interval, adapter: adapter}) do
     pool_id = Config.get_connection_pool_id()
     repo = Repo.new(url, interval * 1000)
 
@@ -36,10 +36,6 @@ defmodule RepoPoller.PollerSupervisor do
       start: {Poller, :start_link, [{repo, adapter, pool_id}]},
       restart: :transient
     })
-  end
-
-  def start_child(_repo, adapter) do
-    {:error, "#{adapter} not supported"}
   end
 
   def stop_child(repository_url) do

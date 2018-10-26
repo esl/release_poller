@@ -255,6 +255,10 @@ defmodule RepoPoller.Repository.GithubFake do
     {:ok, Enum.take(@new_tags, 1)}
   end
 
+  def get_tags(%{owner: "no-tags"}) do
+    {:ok, []}
+  end
+
   def get_tags(_) do
     {:ok, @new_tags}
   end

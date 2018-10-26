@@ -77,6 +77,11 @@ defmodule RepoPoller.Poller do
     Logger.info("polling info for repo: #{repo_name}")
 
     case Service.get_tags(adapter, repo) do
+      {:ok, []} = res ->
+        schedule_poll(repo.polling_interval)
+        if caller, do: send(caller, res)
+        {:noreply, state}
+
       {:ok, tags} = res ->
         case update_repo_tags(repo, tags, state) do
           {:ok, new_state} ->

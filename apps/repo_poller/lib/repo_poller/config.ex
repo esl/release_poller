@@ -48,4 +48,8 @@ defmodule RepoPoller.Config do
     priv_dir = :repo_poller |> :code.priv_dir() |> to_string()
     Application.get_env(:repo_poller, :priv_dir, priv_dir)
   end
+
+  def get_database() do
+    Application.get_env(:repo_poller, :database, Domain.Services.Database)
+  end
 end
