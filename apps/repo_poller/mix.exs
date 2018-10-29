@@ -28,7 +28,6 @@ defmodule RepoPoller.MixProject do
     [
       {:tentacat, "~> 1.1.0"},
       # use master because there aren't newer releases and master has an API function we need
-      {:persistent_ets, github: "michalmuskala/persistent_ets"},
       {:mock, "~> 0.3.2", only: :test},
       {:bugs_bunny, in_umbrella: true},
       {:domain, in_umbrella: true},

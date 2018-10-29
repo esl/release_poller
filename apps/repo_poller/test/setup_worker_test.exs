@@ -39,19 +39,6 @@ defmodule RepoPoller.SetupWorkerTest do
     assert_receive {:DOWN, ^ref, :process, ^pid, :badrpc}
   end
 
-  # # Silence GenServer stop
-  # @tag capture_log: true
-  # test "couldn't start repositories" do
-  #   Domain.Service.MockDatabase
-  #   |> expect(:get_all_repositories, fn ->
-  #     {:ok, [%{}]}
-  #   end)
-
-  #   pid = start_supervised!(SetupWorker, restart: :temporary)
-  #   ref = Process.monitor(pid)
-  #   assert_receive {:DOWN, ^ref, :process, ^pid, _}
-  # end
-
   test "start repositories successfully" do
     Domain.Service.MockDatabase
     |> expect(:get_all_repositories, fn ->
@@ -103,11 +90,9 @@ defmodule RepoPoller.SetupWorkerTest do
     assert :ok =
              wait_for(fn ->
                %{workers: num} = DynamicSupervisor.count_children(PollerSupervisor)
-               num > 0
+               num == 1
              end)
 
-    %{workers: num} = DynamicSupervisor.count_children(PollerSupervisor)
-    assert num == 1
     worker_pid = Process.whereis(:f@k3)
     assert worker_pid
     assert %{repo: %{url: "https://github.com/no-tags/f@k3"}} = Poller.state(worker_pid)

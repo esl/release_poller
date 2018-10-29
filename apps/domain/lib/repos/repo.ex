@@ -15,6 +15,7 @@ defmodule Domain.Repos.Repo do
   @enforce_keys [:url, :polling_interval]
   @type interval :: non_neg_integer()
   @type id :: non_neg_integer()
+  @type url :: String.t()
   @type t :: %__MODULE__{
           name: String.t(),
           owner: String.t(),

@@ -8,15 +8,16 @@ defmodule Domain.Tags.Tag do
   @derive [Poison.Encoder]
 
   @enforce_keys [:name]
+  @type url :: String.t()
   @type t :: %__MODULE__{
           name: Version.t(),
           node_id: String.t(),
           commit: %{
             required(:sha) => String.t(),
-            required(:url) => String.t()
+            required(:url) => url()
           },
-          zipball_url: String.t(),
-          tarball_url: String.t()
+          zipball_url: url(),
+          tarball_url: url()
         }
   defstruct name: nil, node_id: nil, commit: nil, zipball_url: nil, tarball_url: nil
 
@@ -24,6 +25,20 @@ defmodule Domain.Tags.Tag do
   def new(attrs) do
     new_attrs = HelperMap.safe_map_keys_to_atom(attrs)
     struct!(__MODULE__, new_attrs)
+  end
+
+  @spec new(String.t(), String.t(), url(), url(), url(), String.t()) :: Tag.t()
+  def new(name, commit_sha, commit_url, tarball_url, zipball_url, node_id) do
+    %Tag{
+      name: name,
+      node_id: node_id,
+      commit: %{
+        sha: commit_sha,
+        url: commit_url
+      },
+      zipball_url: zipball_url,
+      tarball_url: tarball_url
+    }
   end
 
   @doc """

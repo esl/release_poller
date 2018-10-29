@@ -2,7 +2,7 @@ defmodule RepoPoller.PollerSupervisorTest do
   use ExUnit.Case, async: false
   import Mock
 
-  alias RepoPoller.{PollerSupervisor, Poller, DB, Config}
+  alias RepoPoller.{PollerSupervisor, Poller, Config}
   alias Domain.Tasks.Runners.DockerBuild
   alias RepoPoller.Repository.GithubFake
   alias Domain.Repos.Repo
@@ -19,11 +19,9 @@ defmodule RepoPoller.PollerSupervisorTest do
       |> Repo.set_tasks([task])
 
     get_connection_pool_id_fn = fn -> :random_id end
-    new_fn = fn -> :ok end
 
     with_mocks [
-      {Config, [], [get_connection_pool_id: get_connection_pool_id_fn]},
-      {DB, [:passthrough], [new: new_fn]}
+      {Config, [], [get_connection_pool_id: get_connection_pool_id_fn]}
     ] do
       start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
       assert {:ok, child_pid} = PollerSupervisor.start_child(repo)
@@ -45,11 +43,9 @@ defmodule RepoPoller.PollerSupervisorTest do
   test "setups a supervision tree with map" do
     repo = %{repository_url: "https://github.com/404/erlang", polling_interval: 3600, adapter: GithubFake}
     get_connection_pool_id_fn = fn -> :random_id end
-    new_fn = fn -> :ok end
 
     with_mocks [
-      {Config, [], [get_connection_pool_id: get_connection_pool_id_fn]},
-      {DB, [:passthrough], [new: new_fn]}
+      {Config, [], [get_connection_pool_id: get_connection_pool_id_fn]}
     ] do
       start_supervised!({PollerSupervisor, name: :PollerSupervisorTest})
       assert {:ok, child_pid} = PollerSupervisor.start_child(repo)

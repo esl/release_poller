@@ -3,7 +3,7 @@ defmodule RepoPoller.PollerSupervisor do
 
   alias RepoPoller.Poller
   alias Domain.Repos.Repo
-  alias RepoPoller.{DB, Config}
+  alias RepoPoller.Config
 
   def start_link(args \\ []) do
     name = Keyword.get(args, :name, __MODULE__)
@@ -11,8 +11,6 @@ defmodule RepoPoller.PollerSupervisor do
   end
 
   def init(_) do
-    # let the DB be managed by the supervisor so it won't be restarted unless the supervisor is restarted too
-    DB.new()
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
