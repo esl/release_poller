@@ -7,7 +7,7 @@ defmodule Domain.Repos.Repo do
   alias Domain.Tags.Tag
   alias Domain.Tasks.Task
 
-  @derive {Poison.Encoder, except: [:tags, :adapter]}
+  @derive {Poison.Encoder, except: [:tags, :adapter, :tasks]}
 
   # 1 Hour in ms
   @one_hour 3_600_000

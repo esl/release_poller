@@ -10,8 +10,7 @@ defmodule RepoPoller.PollerSupervisorTest do
 
   @tag capture_log: true
   test "setups a supervision tree with repo" do
-    file = Path.join([System.cwd!(), "test", "fixtures", "build_files", "dockerbuild_test"])
-    task = Task.new(runner: DockerBuild, build_file: file)
+    task = Task.new(runner: DockerBuild, build_file_content: "This is a test file\n")
 
     repo =
       "https://github.com/404/elixir"

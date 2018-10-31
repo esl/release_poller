@@ -40,7 +40,7 @@ defmodule Domain.Tasks.Task do
 
   defstruct id: nil,
             url: nil,
-            build_file_content: [],
+            build_file_content: nil,
             path: nil,
             env: [],
             commands: [],

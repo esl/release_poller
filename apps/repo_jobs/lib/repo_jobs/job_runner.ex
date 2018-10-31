@@ -14,31 +14,39 @@ defmodule RepoJobs.JobRunner do
   returning all tasks that succeeded as `{:ok, task}` and all that failed as
   `{:error, task}`
   """
-  @spec run(NewReleaseJob.t()) :: list(result)
+  @spec run(NewReleaseJob.t()) :: {:ok, list(result)} | {:error, any()}
         when result: {:ok, Task.t()} | {:error, Task.t()}
-  def run(%{repo: %{tasks: []}}), do: []
-
   def run(job) do
-    %{repo: %{tasks: tasks}} = job
-    env = generate_env(job)
-    Enum.map(tasks, &run_task(&1, job, env))
+    %{repo: %{owner: owner, name: repo_name, url: url}, new_tag: %{name: tag_name}} = job
+
+    job_name = "#{owner}/#{repo_name}##{tag_name}"
+
+    case Config.get_database().get_repo_tasks(url) do
+      {:ok, tasks} ->
+        env = generate_env(job)
+        {:ok, Enum.map(tasks, &run_task(&1, job, env))}
+
+      {:error, reason} = error ->
+        Logger.error("error getting tasks for #{job_name} reason #{inspect reason}")
+        error
+    end
   end
 
-  defp run_task(%Task{runner: runner, build_file: build_file} = task, job, env)
-       when not is_nil(build_file) do
+  defp run_task(%Task{id: id, runner: runner, build_file_content: content} = task, job, env)
+       when not is_nil(content) do
     %{
       repo: %{owner: owner, name: repo_name},
       new_tag: %{name: tag_name}
     } = job
 
     job_name = "#{owner}/#{repo_name}##{tag_name}"
-    Logger.info("running task #{build_file} for #{job_name}")
+    Logger.info("running task #{id} for #{job_name}")
 
     with :ok <- runner.exec(task, env) do
       {:ok, task}
     else
       {:error, error} ->
-        Logger.error("error running task #{build_file} for #{job_name} reason: #{inspect(error)}")
+        Logger.error("error running task #{id} for #{job_name} reason: #{inspect(error)}")
         {:error, task}
     end
   end

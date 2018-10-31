@@ -56,6 +56,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
     ]
 
     Application.put_env(:repo_jobs, :rabbitmq_config, rabbitmq_config)
+    Application.put_env(:repo_jobs, :database, Domain.Service.MockDatabase)
 
     start_supervised!(%{
       id: BugsBunny.PoolSupervisorTest,
@@ -172,6 +173,11 @@ defmodule RepoJobs.Integration.ConsumerTest do
         source: Domain.TaskMockSource
       }
 
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task1, task2]}
+      end)
+
       Domain.TaskMockSource
       |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
 
@@ -180,7 +186,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       payload =
         repo
-        |> Repo.set_tasks([task1, task2])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 
@@ -211,6 +216,11 @@ defmodule RepoJobs.Integration.ConsumerTest do
         source: Domain.TaskMockSource
       }
 
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task1, task2]}
+      end)
+
       Domain.TaskMockSource
       |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
 
@@ -222,7 +232,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       payload =
         repo
-        |> Repo.set_tasks([task1, task2])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 
@@ -259,6 +268,11 @@ defmodule RepoJobs.Integration.ConsumerTest do
         source: Domain.TaskMockSource
       }
 
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task1, task2]}
+      end)
+
       Domain.TaskMockSource
       |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
 
@@ -267,7 +281,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       payload =
         repo
-        |> Repo.set_tasks([task1, task2])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 
@@ -295,17 +308,18 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       %{tags: [tag]} = repo
 
-      task = %Task{
-        build_file: "build_files/dockerbuild",
-        runner: Domain.TaskMockRunner
-      }
+      task = %Task{id: 1, runner: Domain.TaskMockRunner, build_file_content: "This is a test"}
+
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task]}
+      end)
 
       Domain.TaskMockRunner
       |> expect(:exec, fn _task, _env -> :ok end)
 
       payload =
         repo
-        |> Repo.set_tasks([task])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 

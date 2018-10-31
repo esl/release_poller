@@ -43,4 +43,8 @@ defmodule RepoJobs.Config do
   def temp_dir() do
     Application.get_env(:repo_jobs, :tmp_dir, System.tmp_dir!())
   end
+
+  def get_database() do
+    Application.get_env(:repo_jobs, :database, Domain.Services.Database)
+  end
 end

@@ -105,23 +105,28 @@ defmodule RepoJobs.Consumer do
 
     client = Config.get_rabbitmq_client()
 
-    # TODO: Mybe create a worker pool to execute jobs in parallel
-    task_results = JobRunner.run(job)
+    # TODO: Maybe create a worker pool to execute jobs in parallel
+    case JobRunner.run(job) do
+      {:ok, task_results} ->
+        # if all tasks failed re-schedule the job
+        Enum.all?(task_results, fn
+          {:error, _} -> true
+          _ -> false
+        end)
+        |> if do
+          # TODO: Make requeuing configurable
+          :ok = client.reject(channel, delivery_tag, requeue: true)
+          if caller, do: send(caller, {:reject, task_results})
+        else
+          # TODO: Make requeuing configurable
+          :ok = client.ack(channel, delivery_tag, requeue: false)
+          if caller, do: send(caller, {:ack, task_results})
+        end
 
-    # if all tasks failed re-schedule the job
-    task_results
-    |> Enum.all?(fn
-      {:error, _} -> true
-      _ -> false
-    end)
-    |> if do
-      # TODO: Make requeuing configurable
-      :ok = client.reject(channel, delivery_tag, requeue: false)
-      if caller, do: send(caller, {:reject, task_results})
-    else
-      # TODO: Make requeuing configurable
-      :ok = client.ack(channel, delivery_tag, requeue: false)
-      if caller, do: send(caller, {:ack, task_results})
+      {:error, error} ->
+        # TODO: Make requeuing configurable
+        :ok = client.reject(channel, delivery_tag, requeue: true)
+        if caller, do: send(caller, {:reject, error})
     end
 
     {:noreply, state}
