@@ -1,5 +1,6 @@
 defmodule RepoPoller.SetupWorker do
   use GenServer
+  require Logger
 
   alias RepoPoller.{PollerSupervisor, Config}
 
@@ -20,6 +21,11 @@ defmodule RepoPoller.SetupWorker do
          :ok <- start_repositories_workers(repositories) do
       {:noreply, state}
     else
+      {:error, :nodedown} ->
+        reconnect = Config.get_database_reconnection_interval()
+        Logger.info("database node is down re-scheduling setup in #{reconnect} ms")
+        re_schedule_after_init(reconnect)
+        {:noreply, state}
       {:error, reason} ->
         {:stop, reason, state}
     end
@@ -40,5 +46,10 @@ defmodule RepoPoller.SetupWorker do
       {:error, _} = error ->
         error
     end
+  end
+
+  defp re_schedule_after_init(interval) do
+    # TODO: use backoff for reconnections
+    Process.send_after(self(), :after_init, interval)
   end
 end

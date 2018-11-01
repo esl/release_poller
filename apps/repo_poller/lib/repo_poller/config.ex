@@ -48,4 +48,8 @@ defmodule RepoPoller.Config do
   def get_database() do
     Application.get_env(:repo_poller, :database, Domain.Services.Database)
   end
+
+  def get_database_reconnection_interval() do
+    Application.get_env(:repo_poller, :database_reconnect, 5000)
+  end
 end
