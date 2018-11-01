@@ -39,6 +39,17 @@ defmodule RepoPoller.SetupWorkerTest do
     assert_receive {:DOWN, ^ref, :process, ^pid, :badrpc}
   end
 
+  test "couldn't get repositories - database node is down" do
+    Domain.Service.MockDatabase
+    |> expect(:get_all_repositories, fn ->
+      {:error, :nodedown}
+    end)
+
+    pid = start_supervised!(SetupWorker)
+    ref = Process.monitor(pid)
+    refute_receive {:DOWN, ^ref, :process, ^pid, :nodedown}
+  end
+
   test "start repositories successfully" do
     Domain.Service.MockDatabase
     |> expect(:get_all_repositories, fn ->
