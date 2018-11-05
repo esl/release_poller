@@ -5,7 +5,7 @@ defmodule RepoPoller.Application do
 
   use Application
 
-  alias RepoPoller.{PollerSupervisor, Config}
+  alias RepoPoller.{SetupSupervisor, Config}
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -15,7 +15,7 @@ defmodule RepoPoller.Application do
     children = [
       {BugsBunny.PoolSupervisor,
        [rabbitmq_config: rabbitmq_config, rabbitmq_conn_pool: rabbitmq_conn_pool]},
-      {PollerSupervisor, []}
+      {SetupSupervisor, []}
     ]
 
     # if for some reason the Supervisor of the RabbitMQ connection pool is terminated we should

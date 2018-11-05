@@ -27,36 +27,29 @@ defmodule Domain.Tasks.Task do
   @type source :: module()
 
   @type t :: %__MODULE__{
+          id: non_neg_integer(),
           url: String.t(),
-          build_file: Path.t(),
           build_file_content: String.t(),
           path: Path.t(),
           env: list(),
           commands: list(String.t()),
           runner: runner(),
-          source: source()
+          source: source(),
+          ssh_key: String.t()
         }
 
-  defstruct url: nil,
-            build_file: nil,
-            build_file_content: [],
+  defstruct id: nil,
+            url: nil,
+            build_file_content: nil,
             path: nil,
             env: [],
             commands: [],
             runner: Make,
-            source: Github
+            source: Github,
+            ssh_key: nil
 
   @spec new(Enum.t()) :: Task.t() | no_return()
   def new(attrs) do
     struct!(__MODULE__, attrs)
-    |> expand_build_file()
-  end
-
-  @spec expand_build_file(Task.t()) :: Task.t()
-  defp expand_build_file(%{build_file: nil} = task), do: task
-
-  defp expand_build_file(%{build_file: path} = task) do
-    content = File.read!(path)
-    %Task{task | build_file_content: content}
   end
 end

@@ -4,7 +4,6 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
   """
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
-  alias Domain.Tasks.Task
   alias Domain.Jobs.NewReleaseJob
 
   @spec serialize!(NewReleaseJob.t()) :: iodata() | no_return()
@@ -26,43 +25,22 @@ defmodule Domain.Serializers.NewReleaseJobSerializer do
       tarball_url: "...",
       zipball_url: "..."
     },
-    repo: %Repo{name: "erlang-katana", owner: "inaka", tags: []}
+    repo: %Repo{name: "erlang-katana", owner: "inaka"}
   }
   """
   @spec deserialize!(iodata()) :: NewReleaseJob.t() | no_return()
   def deserialize!(payload) do
-    job =
-      Poison.decode!(payload,
-        as: %NewReleaseJob{
-          repo: %Repo{name: nil, owner: nil, tasks: [%Task{}]},
-          new_tag: %Tag{name: nil}
+    Poison.decode!(payload,
+      as: %NewReleaseJob{
+        repo: %Repo{
+          url: nil,
+          polling_interval: nil,
+          name: nil,
+          owner: nil
         },
-        keys: :atoms!
-      )
-
-    map_tasks(job)
-  end
-
-  # Converts the deserialized job's tasks into something the system understands
-  defp map_tasks(%{repo: repo} = job) do
-    %{tasks: tasks} = repo
-
-    tasks =
-      tasks
-      |> Enum.map(fn %{runner: runner, source: source, env: env_list} = task ->
-        # runner and source cames as stringified atoms "Elixir.Domain.Tasks.Runners.Make"
-        runner_module = Module.concat([runner])
-        source_module = Module.concat([source])
-
-        env =
-          env_list
-          |> Enum.map(fn [key, value] ->
-            {key, value}
-          end)
-
-        %{task | runner: runner_module, source: source_module, env: env}
-      end)
-
-    %{job | repo: %{repo | tasks: tasks}}
+        new_tag: %Tag{name: nil}
+      },
+      keys: :atoms!
+    )
   end
 end

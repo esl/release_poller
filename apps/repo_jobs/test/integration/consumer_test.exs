@@ -16,7 +16,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
   @moduletag :integration
   @queue "test.consumer.queue"
-  
+
   setup do
     rabbitmq_config = [
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672")
@@ -56,6 +56,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
     ]
 
     Application.put_env(:repo_jobs, :rabbitmq_config, rabbitmq_config)
+    Application.put_env(:repo_jobs, :database, Domain.Service.MockDatabase)
 
     start_supervised!(%{
       id: BugsBunny.PoolSupervisorTest,
@@ -99,7 +100,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
     start_supervised!({Consumer, {self(), pool_id}})
 
     payload =
-      "{\"repo\":{\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
+      "{\"repo\":{\"url\":\"https://github.com/elixir-lang/elixir\",\"tasks\":[],\"polling_interval\":3600000,\"owner\":\"elixir-lang\",\"name\":\"elixir\"},\"new_tag\":{\"zipball_url\":\"https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2\",\"tarball_url\":\"https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2\",\"node_id\":\"MDM6UmVmMTIzNDcxNDp2MS43LjI=\",\"name\":\"v1.7.2\",\"commit\":{\"url\":\"https://api.github.com/repos/elixir-lang/elixir/commits/2b338092b6da5cd5101072dfdd627cfbb49e4736\",\"sha\":\"2b338092b6da5cd5101072dfdd627cfbb49e4736\"}}}"
 
     :ok = RabbitMQ.publish(channel, "", @queue, payload)
     assert_receive {:new_release_job, job}, 1000
@@ -116,7 +117,13 @@ defmodule RepoJobs.Integration.ConsumerTest do
                tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
                zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
              },
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
   end
 
@@ -166,6 +173,11 @@ defmodule RepoJobs.Integration.ConsumerTest do
         source: Domain.TaskMockSource
       }
 
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task1, task2]}
+      end)
+
       Domain.TaskMockSource
       |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
 
@@ -174,7 +186,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       payload =
         repo
-        |> Repo.set_tasks([task1, task2])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 
@@ -205,6 +216,11 @@ defmodule RepoJobs.Integration.ConsumerTest do
         source: Domain.TaskMockSource
       }
 
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task1, task2]}
+      end)
+
       Domain.TaskMockSource
       |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
 
@@ -216,7 +232,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       payload =
         repo
-        |> Repo.set_tasks([task1, task2])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 
@@ -253,6 +268,11 @@ defmodule RepoJobs.Integration.ConsumerTest do
         source: Domain.TaskMockSource
       }
 
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task1, task2]}
+      end)
+
       Domain.TaskMockSource
       |> expect(:fetch, 2, fn task, _tmp_dir -> {:ok, task} end)
 
@@ -261,7 +281,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       payload =
         repo
-        |> Repo.set_tasks([task1, task2])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 
@@ -289,17 +308,18 @@ defmodule RepoJobs.Integration.ConsumerTest do
 
       %{tags: [tag]} = repo
 
-      task = %Task{
-        build_file: "build_files/dockerbuild",
-        runner: Domain.TaskMockRunner
-      }
+      task = %Task{id: 1, runner: Domain.TaskMockRunner, build_file_content: "This is a test"}
+
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task]}
+      end)
 
       Domain.TaskMockRunner
       |> expect(:exec, fn _task, _env -> :ok end)
 
       payload =
         repo
-        |> Repo.set_tasks([task])
         |> NewReleaseJob.new(tag)
         |> NewReleaseJobSerializer.serialize!()
 

@@ -2,7 +2,7 @@ defmodule RepoPoller.Poller do
   use GenServer
   require Logger
 
-  alias RepoPoller.{DB, Config}
+  alias RepoPoller.Config
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag
   alias Domain.Jobs.NewReleaseJob
@@ -13,27 +13,25 @@ defmodule RepoPoller.Poller do
     @enforce_keys [:repo, :pool_id]
 
     @type adapter :: module()
-    @type interval :: non_neg_integer()
 
     @type t :: %__MODULE__{
             repo: Repo.t(),
             adapter: adapter(),
-            interval: interval(),
             pool_id: atom(),
             caller: pid()
           }
-    defstruct(repo: nil, adapter: nil, interval: nil, pool_id: nil, caller: nil)
+    defstruct(repo: nil, adapter: nil, pool_id: nil, caller: nil)
   end
 
   ##############
   # Client API #
   ##############
 
-  def start_link({%{name: repo_name}, _adapter, _pool_id, _interval} = args) do
+  def start_link({%{name: repo_name}, _adapter, _pool_id} = args) do
     GenServer.start_link(__MODULE__, args, name: String.to_atom(repo_name))
   end
 
-  def start_link({_caller, %{name: repo_name}, _adapter, _pool_id, _interval} = args) do
+  def start_link({_caller, %{name: repo_name}, _adapter, _pool_id} = args) do
     GenServer.start_link(__MODULE__, args, name: String.to_atom(repo_name))
   end
 
@@ -51,23 +49,22 @@ defmodule RepoPoller.Poller do
   # Server Callbacks #
   ####################
 
-  @spec init({Repo.t(), State.adapter(), atom(), State.interval()}) :: {:ok, State.t()}
+  @spec init({Repo.t(), State.adapter(), atom()}) :: {:ok, State.t()}
   @impl true
-  def init({repo, adapter, pool_id, interval}) do
-    state = %State{repo: repo, adapter: adapter, pool_id: pool_id, interval: interval}
+  def init({repo, adapter, pool_id}) do
+    state = %State{repo: repo, adapter: adapter, pool_id: pool_id}
     schedule_poll(0)
     {:ok, state}
   end
 
   @doc false
-  @spec init({pid(), Repo.t(), State.adapter(), atom(), State.interval()}) :: {:ok, State.t()}
+  @spec init({pid(), Repo.t(), State.adapter(), atom()}) :: {:ok, State.t()}
   @impl true
-  def init({caller, repo, adapter, pool_id, interval}) do
+  def init({caller, repo, adapter, pool_id}) do
     state = %State{
       repo: repo,
       adapter: adapter,
       pool_id: pool_id,
-      interval: interval,
       caller: caller
     }
 
@@ -75,18 +72,20 @@ defmodule RepoPoller.Poller do
   end
 
   @impl true
-  def handle_info(
-        :poll,
-        %{repo: repo, adapter: adapter, interval: interval, caller: caller} = state
-      ) do
+  def handle_info(:poll, %{repo: repo, adapter: adapter, caller: caller} = state) do
     repo_name = Repo.uniq_name(repo)
     Logger.info("polling info for repo: #{repo_name}")
 
     case Service.get_tags(adapter, repo) do
+      {:ok, []} = res ->
+        schedule_poll(repo.polling_interval)
+        if caller, do: send(caller, res)
+        {:noreply, state}
+
       {:ok, tags} = res ->
         case update_repo_tags(repo, tags, state) do
           {:ok, new_state} ->
-            schedule_poll(interval)
+            schedule_poll(repo.polling_interval)
             if caller, do: send(caller, res)
             {:noreply, new_state}
 
@@ -103,7 +102,7 @@ defmodule RepoPoller.Poller do
 
       {:error, reason} = err ->
         Logger.error("error polling info for repo: #{repo_name} reason: #{inspect(reason)}")
-        schedule_poll(interval)
+        schedule_poll(repo.polling_interval)
         if caller, do: send(caller, err)
         {:noreply, state}
     end
@@ -118,33 +117,29 @@ defmodule RepoPoller.Poller do
   # Internals #
   #############
 
-  @spec schedule_poll(State.interval()) :: reference()
+  @spec schedule_poll(Repo.interval()) :: reference()
   defp schedule_poll(interval) do
     Process.send_after(self(), :poll, interval)
   end
 
-  # Fetch a repo from the DB, if it doesn't exists, schedule all the fetched tags
-  # as jobs, else if it already exists, compare its old tags with the fetched tags
+  # Fetch a repo from the database, compare its old tags with the fetched tags
   # and if there are new tags schedule them as jobs
   @spec update_repo_tags(Repo.t(), list(Tag.t()), State.t()) ::
           {:ok, State.t()} | {:error, :out_of_retries}
   defp update_repo_tags(repo, tags, state) do
-    repo_name = Repo.uniq_name(repo)
+    case Config.get_database().get_all_tags(repo.url) do
+      {:error, _} = error ->
+        error
 
-    case DB.get_repo(repo) do
-      nil ->
-        Logger.info("scheduling jobs for new repo #{repo_name}")
-        schedule_jobs(state, repo, tags)
-
-      db_repo ->
-        case Tag.new_tags(db_repo.tags, tags) do
+      {:ok, repo_tags} ->
+        case Tag.new_tags(repo_tags, tags) do
           [] ->
-            Logger.info("no new tags for #{repo_name}")
+            Logger.info("no new tags for #{repo.url}")
             {:ok, state}
 
           new_tags ->
-            Logger.info("scheduling jobs for #{repo_name}")
-            schedule_jobs(state, db_repo, new_tags)
+            Logger.info("scheduling jobs for #{repo.url}")
+            schedule_jobs(state, repo, new_tags)
         end
     end
   end
@@ -168,7 +163,7 @@ defmodule RepoPoller.Poller do
           non_neg_integer()
         ) :: {:ok, State.t()} | {:error, :out_of_retries}
   defp do_with_channel({:error, reason}, state, repo, new_tags, retries) do
-    Logger.error("error getting a channel reason: #{reason}")
+    Logger.error("error getting a channel reason: #{inspect(reason)}")
 
     Config.get_rabbitmq_reconnection_interval()
     |> :timer.sleep()
@@ -176,37 +171,48 @@ defmodule RepoPoller.Poller do
     schedule_jobs(state, repo, new_tags, retries - 1)
   end
 
-  # On channel checkout success creates a job per each new repo tag, publish it
-  # to RabbitMQ and store the `repo` to the `DB` with all its tags
-  defp do_with_channel({:ok, channel}, %{caller: caller} = state, repo, new_tags, _retries) do
+  # On channel checkout success creates a new job per new tag, publish it
+  # to RabbitMQ and store all the new tags
+  defp do_with_channel({:ok, channel}, state, repo, new_tags, _retries) do
     repo_name = Repo.uniq_name(repo)
-    jobs = NewReleaseJob.new(repo, new_tags)
-    Logger.info("publishing #{length(jobs)} releases for #{repo_name}")
-
-    for job <- jobs do
-      job_payload = NewReleaseJobSerializer.serialize!(job)
-
-      case publish_job(channel, job_payload) do
-        {:error, reason} ->
-          # TODO: handle publish errors e.g maybe remove tag from new_tags so it can be re-scheduled later
-          Logger.error("error publishing new release for #{repo_name} reason: #{reason}")
-          if caller, do: send(caller, {:job_not_published, job_payload})
-
-          :ok
-
-        :ok ->
-          if caller, do: send(caller, {:job_published, job_payload})
-          :ok
-      end
-    end
-
-    :ok =
-      Repo.add_tags(repo, new_tags)
-      |> DB.save()
-
-    Logger.info("success publishing releases for #{repo_name}")
-
+    Logger.info("publishing #{length(new_tags)} releases for #{repo_name}")
+    create_and_publish_tags(channel, state, repo, new_tags)
     {:ok, state}
+  end
+
+  defp create_and_publish_tags(_channel, _state, _repo, []), do: :ok
+
+  defp create_and_publish_tags(channel, %{caller: caller} = state, repo, [tag | rest]) do
+    job_payload =
+      repo
+      |> NewReleaseJob.new(tag)
+      |> NewReleaseJobSerializer.serialize!()
+
+    case publish_job(channel, job_payload) do
+      {:error, reason} ->
+        Logger.error(
+          "error publishing new release #{tag.name} for #{repo.url} reason: #{inspect(reason)}"
+        )
+
+        if caller, do: send(caller, {:job_not_published, job_payload})
+        create_and_publish_tags(channel, state, repo, rest)
+
+      :ok ->
+        Logger.info("success publishing new release #{tag.name} for #{repo.url}")
+        if caller, do: send(caller, {:job_published, job_payload})
+
+        case Config.get_database().create_tag(repo.url, tag) do
+          {:ok, _} ->
+            Logger.info("success creating new tag #{tag.name} for #{repo.url}")
+
+          {:error, reason} ->
+            Logger.error(
+              "error creating new tag #{tag.name} for #{repo.url} reason: #{inspect(reason)}"
+            )
+        end
+
+        create_and_publish_tags(channel, state, repo, rest)
+    end
   end
 
   @spec publish_job(AMQP.Channel.t(), String.t() | iodata()) :: :ok | AMQP.Basic.error()

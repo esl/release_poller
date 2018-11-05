@@ -40,12 +40,16 @@ defmodule RepoPoller.Config do
     |> Keyword.get(:reconnect, 5000)
   end
 
-  def get_db_name() do
-    Application.get_env(:repo_poller, :db_name) || System.get_env("DB_NAME") || "releases.tab"
-  end
-
   def priv_dir() do
     priv_dir = :repo_poller |> :code.priv_dir() |> to_string()
     Application.get_env(:repo_poller, :priv_dir, priv_dir)
+  end
+
+  def get_database() do
+    Application.get_env(:repo_poller, :database, Domain.Services.Database)
+  end
+
+  def get_database_reconnection_interval() do
+    Application.get_env(:repo_poller, :database_reconnect, 5000)
   end
 end

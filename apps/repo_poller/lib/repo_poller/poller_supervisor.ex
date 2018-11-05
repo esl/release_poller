@@ -1,63 +1,66 @@
 defmodule RepoPoller.PollerSupervisor do
-  use Supervisor
+  use DynamicSupervisor
 
   alias RepoPoller.Poller
   alias Domain.Repos.Repo
-  alias Domain.Tasks.Task
-  alias RepoPoller.{DB, Config}
+  alias RepoPoller.Config
 
   def start_link(args \\ []) do
     name = Keyword.get(args, :name, __MODULE__)
-    Supervisor.start_link(__MODULE__, [], name: name)
+    DynamicSupervisor.start_link(__MODULE__, [], name: name)
   end
 
   def init(_) do
-    # let the DB be managed by the supervisor so it won't be restarted unless the supervisor is restarted too
-    DB.new()
+    DynamicSupervisor.init(strategy: :one_for_one)
+  end
 
-    children =
-      Config.get_repos()
+  def start_child(%Repo{} = repo) do
+    pool_id = Config.get_connection_pool_id()
+
+    adapter = setup_adapter(repo.adapter)
+
+    DynamicSupervisor.start_child(__MODULE__, %{
+      id: "poller_#{repo.name}",
+      start: {Poller, :start_link, [{repo, adapter, pool_id}]},
+      restart: :transient
+    })
+  end
+
+  def start_child(%{repository_url: url, polling_interval: interval, adapter: adapter}) do
+    pool_id = Config.get_connection_pool_id()
+    repo = Repo.new(url, interval * 1000)
+
+    adapter = setup_adapter(adapter)
+
+    DynamicSupervisor.start_child(__MODULE__, %{
+      id: "poller_#{repo.name}",
+      start: {Poller, :start_link, [{repo, adapter, pool_id}]},
+      restart: :transient
+    })
+  end
+
+  def stop_child(repository_url) do
+    repo = Repo.new(repository_url)
+
+    try do
+      repo.name
+      |> String.to_existing_atom()
+      |> Process.whereis()
       |> case do
-        # don't start any child and don't ask for pool configs (for testing only)
-        [] ->
-          []
-
-        repos ->
-          pool_id = Config.get_connection_pool_id()
-
-          for {url, adapter, interval, tasks} <- repos do
-            repo = setup_repo(url, tasks)
-
-            Supervisor.child_spec({Poller, {repo, adapter, pool_id, interval * 1000}},
-              id: "poller_#{repo.name}"
-            )
-          end
-      end
-
-    opts = [strategy: :one_for_one]
-    Supervisor.init(children, opts)
-  end
-
-  @spec setup_repo(String.t(), keyword()) :: Repo.t()
-  defp setup_repo(url, tasks_attrs) do
-    tasks = Enum.map(tasks_attrs, &setup_task/1)
-
-    Repo.new(url)
-    |> Repo.set_tasks(tasks)
-  end
-
-  @spec setup_task(keyword()) :: Task.t()
-  defp setup_task(task_attr) do
-    {_, new_attrs} =
-      Keyword.get_and_update(task_attr, :build_file, fn
         nil ->
-          :pop
+          {:error, "Couldn't find repository process."}
 
-        build_file_path ->
-          expanded_path = Path.join([Config.priv_dir(), build_file_path])
-          {build_file_path, expanded_path}
-      end)
+        pid when is_pid(pid) ->
+          DynamicSupervisor.terminate_child(__MODULE__, pid)
+      end
+    rescue
+      _ -> {:error, "Couldn't find repository process."}
+    end
+  end
 
-    Task.new(new_attrs)
+  defp setup_adapter(adapter) when is_atom(adapter), do: adapter
+
+  defp setup_adapter(adapter) when is_binary(adapter) do
+    Module.concat(["RepoPoller.Repository", Macro.camelize(adapter)])
   end
 end

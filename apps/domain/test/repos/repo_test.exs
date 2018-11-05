@@ -6,8 +6,16 @@ defmodule Domain.Repos.RepoTest do
   alias Domain.Tasks.Task
 
   test "creates a new repo" do
-    assert %Repo{name: "dialyxir", owner: "jeremyjh"} ==
-             Repo.new("https://github.com/jeremyjh/dialyxir")
+    assert %Repo{
+             name: "dialyxir",
+             owner: "jeremyjh",
+             url: "https://github.com/jeremyjh/dialyxir",
+             polling_interval: 3_600_000
+           } == Repo.new("https://github.com/jeremyjh/dialyxir")
+  end
+
+  test "creates a new repo with interval" do
+    assert %Repo{polling_interval: 60} = Repo.new("https://github.com/jeremyjh/dialyxir", 60)
   end
 
   test "add tags" do

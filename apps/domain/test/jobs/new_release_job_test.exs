@@ -24,7 +24,13 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
 
     assert job == %NewReleaseJob{
              new_tag: tag,
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
   end
 
@@ -59,7 +65,13 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
                tarball_url: "https://api.github.com/repos/elixir-lang/elixir/tarball/v1.7.2",
                zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
              },
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               polling_interval: 3_600_000,
+               tags: []
+             }
            }
   end
 
@@ -96,12 +108,24 @@ defmodule Domain.Jobs.NewReleaseJob.Test do
 
     assert job1 == %NewReleaseJob{
              new_tag: tag1,
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
 
     assert job2 == %NewReleaseJob{
              new_tag: tag2,
-             repo: %Repo{name: "elixir", owner: "elixir-lang", tags: []}
+             repo: %Repo{
+               url: "https://github.com/elixir-lang/elixir",
+               name: "elixir",
+               owner: "elixir-lang",
+               tags: [],
+               polling_interval: 3_600_000
+             }
            }
   end
 end

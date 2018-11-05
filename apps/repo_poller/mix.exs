@@ -28,12 +28,12 @@ defmodule RepoPoller.MixProject do
     [
       {:tentacat, "~> 1.1.0"},
       # use master because there aren't newer releases and master has an API function we need
-      {:persistent_ets, github: "michalmuskala/persistent_ets"},
       {:mock, "~> 0.3.2", only: :test},
       {:bugs_bunny, in_umbrella: true},
       {:domain, in_umbrella: true},
       {:poison, "~> 4.0"},
-      {:httpoison, "~> 1.3", override: true}
+      {:httpoison, "~> 1.3", override: true},
+      {:mox, "~> 0.4", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:sibling_app_in_umbrella, in_umbrella: true},

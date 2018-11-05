@@ -7,20 +7,36 @@ defmodule Domain.Repos.Repo do
   alias Domain.Tags.Tag
   alias Domain.Tasks.Task
 
-  @derive {Poison.Encoder, except: [:tags]}
+  @derive {Poison.Encoder, except: [:tags, :adapter, :tasks]}
 
-  @enforce_keys [:name, :owner]
+  # 1 Hour in ms
+  @one_hour 3_600_000
+
+  @enforce_keys [:url, :polling_interval]
+  @type interval :: non_neg_integer()
+  @type id :: non_neg_integer()
+  @type url :: String.t()
   @type t :: %__MODULE__{
           name: String.t(),
           owner: String.t(),
+          url: String.t(),
+          adapter: String.t(),
+          # In milliseconds
+          polling_interval: interval(),
           tags: list(Tag.t()),
           tasks: list(Task.t())
         }
 
-  defstruct name: nil, owner: nil, tags: [], tasks: []
+  defstruct name: nil,
+            owner: nil,
+            url: nil,
+            adapter: "github",
+            polling_interval: nil,
+            tags: [],
+            tasks: []
 
-  @spec new(binary()) :: Repo.t()
-  def new(url) do
+  @spec new(String.t(), interval(), String.t()) :: Repo.t()
+  def new(url, interval \\ @one_hour, adapter \\ "github") do
     %{path: path} = URI.parse(url)
 
     [owner, repo_name] =
@@ -28,7 +44,7 @@ defmodule Domain.Repos.Repo do
       |> String.replace_leading("/", "")
       |> String.split("/")
 
-    %Repo{owner: owner, name: repo_name}
+    %Repo{url: url, owner: owner, name: repo_name, polling_interval: interval, adapter: adapter}
   end
 
   @doc """

@@ -1,5 +1,6 @@
 defmodule RepoPoller.Integration.PollerTest do
   use ExUnit.Case
+  import Mox
 
   alias AMQP.{Connection, Channel, Queue, Basic}
 
@@ -9,13 +10,15 @@ defmodule RepoPoller.Integration.PollerTest do
   alias Domain.Tags.Tag
   alias Domain.Jobs.NewReleaseJob
   alias Domain.Serializers.NewReleaseJobSerializer, as: JobSerializer
-  alias RepoPoller.DB
 
   @moduletag :integration
   @queue "test.new_releases.queue"
 
+  # Make sure mocks are verified when the test exits
+  setup :set_mox_global
+  setup :verify_on_exit!
+
   setup do
-    DB.clear()
     # setup test queue in RabbitMQ
 
     rabbitmq_config = [
@@ -27,7 +30,6 @@ defmodule RepoPoller.Integration.PollerTest do
     {:ok, %{queue: queue}} = Queue.declare(channel, @queue)
 
     on_exit(fn ->
-      DB.clear()
       {:ok, _} = Queue.delete(channel, queue)
       :ok = Connection.close(conn)
     end)
@@ -54,6 +56,7 @@ defmodule RepoPoller.Integration.PollerTest do
     ]
 
     Application.put_env(:repo_poller, :rabbitmq_config, rabbitmq_config)
+    Application.put_env(:repo_poller, :database, Domain.Service.MockDatabase)
 
     start_supervised!(%{
       id: BugsBunny.PoolSupervisorTest,
@@ -66,16 +69,26 @@ defmodule RepoPoller.Integration.PollerTest do
       type: :supervisor
     })
 
-    {:ok, pool_id: :test_pool}
+    n = :rand.uniform(1_000)
+    uniq_name = "test-#{n}"
+
+    {:ok, pool_id: :test_pool, name: uniq_name}
   end
 
-  test "place new job in rabbitmq to be processed later - single tag", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/new-tag/elixir")
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 10_000}})
+  test "place new job in rabbitmq to be processed later - single tag", %{
+    pool_id: pool_id,
+    name: name
+  } do
+    Domain.Service.MockDatabase
+    |> expect(:get_all_tags, fn _url ->
+      {:ok, []}
+    end)
+    |> expect(:create_tag, fn _url, tag -> {:ok, tag} end)
+
+    repo = Repo.new("https://github.com/new-tag/#{name}")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
-    db_repo = DB.get_repo(repo)
-    refute Enum.empty?(db_repo.tags)
 
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       {:ok, consumer_tag} = Basic.consume(channel, @queue)
@@ -101,10 +114,17 @@ defmodule RepoPoller.Integration.PollerTest do
   end
 
   test "place multiple jobs in rabbitmq to be processed later - multiple new tags", %{
-    pool_id: pool_id
+    pool_id: pool_id,
+    name: name
   } do
-    repo = Repo.new("https://github.com/2-new-tags/elixir")
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 10_000}})
+    Domain.Service.MockDatabase
+    |> expect(:get_all_tags, fn _url ->
+      {:ok, []}
+    end)
+    |> expect(:create_tag, 2, fn _url, tag -> {:ok, tag} end)
+
+    repo = Repo.new("https://github.com/2-new-tags/#{name}")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
     Poller.poll(pid)
     assert_receive {:ok, _tags}, 1000
 
@@ -159,16 +179,14 @@ defmodule RepoPoller.Integration.PollerTest do
     end)
   end
 
-  test "doesn't publish new jobs", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/2-new-tags/elixir")
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 10_000}})
+  test "doesn't publish new jobs", %{pool_id: pool_id, name: name} do
+    repo = Repo.new("https://github.com/2-new-tags/#{name}")
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
 
-    {:ok, tags} = GithubFake.get_tags(repo)
-
-    :ok =
-      repo
-      |> Repo.add_tags(tags)
-      |> DB.save()
+    Domain.Service.MockDatabase
+    |> expect(:get_all_tags, fn _url ->
+      GithubFake.get_tags(repo)
+    end)
 
     Poller.poll(pid)
 
@@ -179,12 +197,17 @@ defmodule RepoPoller.Integration.PollerTest do
     end)
   end
 
-  test "only publishes new tags jobs", %{pool_id: pool_id} do
-    repo = Repo.new("https://github.com/2-new-tags/elixir")
+  test "only publishes new tags jobs", %{pool_id: pool_id, name: name} do
+    repo = Repo.new("https://github.com/2-new-tags/#{name}")
     {:ok, [new_tag, tag]} = GithubFake.get_tags(repo)
-    repo = Repo.add_tags(repo, [tag])
-    :ok = DB.save(repo)
-    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id, 10_000}})
+
+    Domain.Service.MockDatabase
+    |> expect(:get_all_tags, fn _url ->
+      {:ok, [tag]}
+    end)
+    |> expect(:create_tag, fn _url, ^new_tag -> {:ok, new_tag} end)
+
+    pid = start_supervised!({Poller, {self(), repo, GithubFake, pool_id}})
 
     Poller.poll(pid)
 
@@ -210,9 +233,6 @@ defmodule RepoPoller.Integration.PollerTest do
                  zipball_url: "https://api.github.com/repos/elixir-lang/elixir/zipball/v1.7.2"
                }
              } = job
-
-      %{tags: tags} = DB.get_repo(repo)
-      assert tags == [new_tag, tag]
     end)
   end
 end
