@@ -60,4 +60,9 @@ defmodule Domain.Tasks.Task do
   def new(attrs) do
     struct!(__MODULE__, attrs)
   end
+
+  @spec new(Task.t()) :: map()
+  def get_docker_credentials(task) do
+    Map.take(task, [:docker_username, :docker_password, :docker_servername])
+  end
 end
