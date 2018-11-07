@@ -40,7 +40,12 @@ defmodule RepoPoller.PollerSupervisorTest do
 
   @tag capture_log: true
   test "setups a supervision tree with map" do
-    repo = %{repository_url: "https://github.com/404/erlang", polling_interval: 3600, adapter: GithubFake}
+    repo = %{
+      repository_url: "https://github.com/404/erlang",
+      polling_interval: 3600,
+      adapter: GithubFake
+    }
+
     get_connection_pool_id_fn = fn -> :random_id end
 
     with_mocks [

@@ -27,7 +27,7 @@ defmodule RepoJobs.JobRunner do
         {:ok, Enum.map(tasks, &run_task(&1, job, env))}
 
       {:error, reason} = error ->
-        Logger.error("error getting tasks for #{job_name} reason #{inspect reason}")
+        Logger.error("error getting tasks for #{job_name} reason #{inspect(reason)}")
         error
     end
   end

@@ -5,7 +5,13 @@ defmodule Domain.Tasks.Runners.DockerBuild do
 
   @impl true
   def exec(task, env) do
-    %{build_file_content: build_file_content, env: extra_env} = task
+    %{
+      build_file_content: build_file_content,
+      env: extra_env,
+      docker_username: docker_username,
+      docker_password: docker_password,
+      docker_servername: docker_servername
+    } = task
 
     DockerfileParser.parse_content!(build_file_content)
     |> inject_env(extra_env ++ env)
