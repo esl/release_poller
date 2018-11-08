@@ -9,7 +9,7 @@ defmodule RepoPoller.SetupWorkerTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  def wait_for(timeout \\ 100, f)
+  def wait_for(timeout \\ 1000, f)
   def wait_for(0, _), do: {:error, "Timeout waiting for a poller worker to be created."}
 
   def wait_for(timeout, f) do
