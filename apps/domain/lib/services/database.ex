@@ -106,7 +106,8 @@ defmodule Domain.Services.Database do
         docker_username: docker_username,
         docker_email: docker_email,
         docker_password: docker_password,
-        docker_servername: docker_servername
+        docker_servername: docker_servername,
+        docker_image_name: docker_image_name
       } = task
 
       # runner and source came as strings "make", "docker_build", "github" and we need to convert
@@ -138,7 +139,8 @@ defmodule Domain.Services.Database do
         docker_username: docker_username,
         docker_email: docker_email,
         docker_password: docker_password,
-        docker_servername: docker_servername
+        docker_servername: docker_servername,
+        docker_image_name: docker_image_name
       }
       |> Task.new()
     end)

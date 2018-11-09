@@ -39,7 +39,8 @@ defmodule Domain.Tasks.Task do
           docker_username: String.t(),
           docker_email: String.t(),
           docker_password: String.t(),
-          docker_servername: String.t()
+          docker_servername: String.t(),
+          docker_image_name: String.t()
         }
 
   defstruct id: nil,
@@ -54,7 +55,8 @@ defmodule Domain.Tasks.Task do
             docker_username: nil,
             docker_email: nil,
             docker_password: nil,
-            docker_servername: nil
+            docker_servername: nil,
+            docker_image_name: nil
 
   @spec new(Enum.t()) :: Task.t() | no_return()
   def new(attrs) do

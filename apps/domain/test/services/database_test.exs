@@ -146,7 +146,8 @@ defmodule Domain.Services.DatabaseTest do
             docker_username: nil,
             docker_email: nil,
             docker_password: nil,
-            docker_servername: "https://index.docker.io/v1/"
+            docker_servername: "https://index.docker.io/v1/",
+            docker_image_name: "test"
           },
           %{
             id: 1,
@@ -160,7 +161,8 @@ defmodule Domain.Services.DatabaseTest do
             docker_username: nil,
             docker_email: nil,
             docker_password: nil,
-            docker_servername: "https://index.docker.io/v1/"
+            docker_servername: "https://index.docker.io/v1/",
+            docker_image_name: "test2"
           }
         ]
       end)
