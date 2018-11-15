@@ -20,6 +20,7 @@ defmodule Domain.Repos.Repo do
           name: String.t(),
           owner: String.t(),
           url: String.t(),
+          github_token: String.t(),
           adapter: String.t(),
           # In milliseconds
           polling_interval: interval(),
@@ -30,13 +31,14 @@ defmodule Domain.Repos.Repo do
   defstruct name: nil,
             owner: nil,
             url: nil,
+            github_token: nil,
             adapter: "github",
             polling_interval: nil,
             tags: [],
             tasks: []
 
   @spec new(String.t(), interval(), String.t()) :: Repo.t()
-  def new(url, interval \\ @one_hour, adapter \\ "github") do
+  def new(url, interval \\ @one_hour, adapter \\ "github", token \\ nil) do
     %{path: path} = URI.parse(url)
 
     [owner, repo_name] =
@@ -44,7 +46,14 @@ defmodule Domain.Repos.Repo do
       |> String.replace_leading("/", "")
       |> String.split("/")
 
-    %Repo{url: url, owner: owner, name: repo_name, polling_interval: interval, adapter: adapter}
+    %Repo{
+      url: url,
+      owner: owner,
+      name: repo_name,
+      polling_interval: interval,
+      adapter: adapter,
+      github_token: token
+    }
   end
 
   @doc """
