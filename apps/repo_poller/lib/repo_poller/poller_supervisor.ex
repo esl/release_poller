@@ -26,9 +26,14 @@ defmodule RepoPoller.PollerSupervisor do
     })
   end
 
-  def start_child(%{repository_url: url, polling_interval: interval, adapter: adapter}) do
+  def start_child(%{
+        repository_url: url,
+        polling_interval: interval,
+        adapter: adapter,
+        github_token: token
+      }) do
     pool_id = Config.get_connection_pool_id()
-    repo = Repo.new(url, interval * 1000)
+    repo = Repo.new(url, interval * 1000, adapter, token)
 
     adapter = setup_adapter(adapter)
 

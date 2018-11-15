@@ -27,9 +27,10 @@ defmodule RepoPoller.Repository.Github do
   """
   @spec get_tags(Repo.t()) ::
           {:ok, list(Tag.t())} | {:error, :rate_limit, pos_integer()} | {:error, map()}
-  def get_tags(%{owner: owner, name: name}) do
+  def get_tags(%{owner: owner, name: name, github_token: token}) do
     try do
-      new()
+      token
+      |> new()
       |> Tags.list(owner, name)
       |> handle_tags_reponse()
     rescue
@@ -78,13 +79,15 @@ defmodule RepoPoller.Repository.Github do
     {:ok, map_tags(json_body)}
   end
 
-  @spec new() :: Tentacat.Client.t()
-  defp new() do
+  @spec new(String.t()) :: Tentacat.Client.t()
+  defp new(nil) do
     case Config.get_github_access_token() do
       nil -> Client.new()
       auth -> Client.new(auth)
     end
   end
+
+  defp new(token) when is_binary(token), do: Client.new(%{access_token: token})
 
   defp map_tags(json_body) do
     Enum.map(json_body, &Tag.new/1)
