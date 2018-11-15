@@ -58,7 +58,8 @@ defmodule RepoPoller.SetupWorkerTest do
          %{
            polling_interval: 3600,
            repository_url: "https://github.com/no-tags/f@k3",
-           adapter: GithubFake
+           adapter: GithubFake,
+           github_token: nil
          }
        ]}
     end)
@@ -85,12 +86,14 @@ defmodule RepoPoller.SetupWorkerTest do
          %{
            polling_interval: 3600,
            repository_url: "https://github.com/no-tags/f@k3",
-           adapter: GithubFake
+           adapter: GithubFake,
+           github_token: nil
          },
          %{
            polling_interval: 3600,
            repository_url: "https://github.com/no-tags/f@k3",
-           adapter: GithubFake
+           adapter: GithubFake,
+           github_token: nil
          }
        ]}
     end)
