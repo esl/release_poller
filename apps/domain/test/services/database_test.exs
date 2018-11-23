@@ -29,7 +29,8 @@ defmodule Domain.Services.DatabaseTest do
           %{
             polling_interval: 3600,
             repository_url: "https://github.com/elixir-lang/elixir",
-            adapter: "github"
+            adapter: "github",
+            github_token: nil
           }
         ]
       end)

@@ -43,7 +43,8 @@ defmodule RepoPoller.PollerSupervisorTest do
     repo = %{
       repository_url: "https://github.com/404/erlang",
       polling_interval: 3600,
-      adapter: GithubFake
+      adapter: GithubFake,
+      github_token: nil
     }
 
     get_connection_pool_id_fn = fn -> :random_id end

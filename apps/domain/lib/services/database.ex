@@ -68,10 +68,11 @@ defmodule Domain.Services.Database do
       %{
         polling_interval: polling_interval,
         repository_url: repository_url,
-        adapter: adapter
+        adapter: adapter,
+        github_token: token
       } = repo
 
-      Repo.new(repository_url, polling_interval * 1000, adapter)
+      Repo.new(repository_url, polling_interval * 1000, adapter, token)
     end)
   end
 
