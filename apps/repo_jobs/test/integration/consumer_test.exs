@@ -195,6 +195,30 @@ defmodule RepoJobs.Integration.ConsumerTest do
       assert [{:ok, ^task1}, {:ok, ^task2}] = task_results
     end
 
+    test "successfully process job without tasks", %{
+      repo: repo,
+      channel: channel,
+      pool_id: pool_id
+    } do
+      start_supervised!({Consumer, {self(), pool_id}})
+
+      %{tags: [tag]} = repo
+
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, []}
+      end)
+
+      payload =
+        repo
+        |> NewReleaseJob.new(tag)
+        |> NewReleaseJobSerializer.serialize!()
+
+      :ok = RabbitMQ.publish(channel, "", @queue, payload)
+      assert_receive {:new_release_job, _}, 1000
+      assert_receive {:ack, []}, 1000
+    end
+
     test "failed to process job's tasks", %{
       repo: repo,
       channel: channel,
