@@ -13,6 +13,7 @@ defmodule RepoPoller.SetupSupervisor do
       {PollerSupervisor, []},
       {SetupWorker, []}
     ]
+
     opts = [strategy: :rest_for_one]
     Supervisor.init(children, opts)
   end

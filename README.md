@@ -137,3 +137,6 @@ MIX_ENV=prod mix release --name=poller
 # run the release
 _build/prod/rel/poller/bin/poller foreground
 ```
+
+`iex --name jobs@127.0.0.1 --cookie hola -S mix`
+`iex --name poller@127.0.0.1 --cookie hola -S mix`

@@ -35,7 +35,12 @@ defmodule Domain.Tasks.Task do
           commands: list(String.t()),
           runner: runner(),
           source: source(),
-          ssh_key: String.t()
+          ssh_key: String.t(),
+          docker_username: String.t(),
+          docker_email: String.t(),
+          docker_password: String.t(),
+          docker_servername: String.t(),
+          docker_image_name: String.t()
         }
 
   defstruct id: nil,
@@ -46,10 +51,20 @@ defmodule Domain.Tasks.Task do
             commands: [],
             runner: Make,
             source: Github,
-            ssh_key: nil
+            ssh_key: nil,
+            docker_username: nil,
+            docker_email: nil,
+            docker_password: nil,
+            docker_servername: nil,
+            docker_image_name: nil
 
   @spec new(Enum.t()) :: Task.t() | no_return()
   def new(attrs) do
     struct!(__MODULE__, attrs)
+  end
+
+  @spec new(Task.t()) :: map()
+  def get_docker_credentials(task) do
+    Map.take(task, [:docker_username, :docker_password, :docker_servername])
   end
 end

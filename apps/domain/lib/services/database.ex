@@ -103,7 +103,12 @@ defmodule Domain.Services.Database do
         fetch_url: url,
         commands: commands,
         build_file_content: build_file_content,
-        ssh_key: ssh_key
+        ssh_key: ssh_key,
+        docker_username: docker_username,
+        docker_email: docker_email,
+        docker_password: docker_password,
+        docker_servername: docker_servername,
+        docker_image_name: docker_image_name
       } = task
 
       # runner and source came as strings "make", "docker_build", "github" and we need to convert
@@ -131,7 +136,12 @@ defmodule Domain.Services.Database do
         url: url,
         commands: commands,
         build_file_content: build_file_content,
-        ssh_key: ssh_key
+        ssh_key: ssh_key,
+        docker_username: docker_username,
+        docker_email: docker_email,
+        docker_password: docker_password,
+        docker_servername: docker_servername,
+        docker_image_name: docker_image_name
       }
       |> Task.new()
     end)

@@ -143,7 +143,12 @@ defmodule Domain.Services.DatabaseTest do
             fetch_url: nil,
             commands: [],
             build_file_content: "This is a test.",
-            ssh_key: "this is a key"
+            ssh_key: "this is a key",
+            docker_username: nil,
+            docker_email: nil,
+            docker_password: nil,
+            docker_servername: "https://index.docker.io/v1/",
+            docker_image_name: "test"
           },
           %{
             id: 1,
@@ -153,7 +158,12 @@ defmodule Domain.Services.DatabaseTest do
             fetch_url: "https://github.com/f@k3/f@k3",
             commands: ["install", "build", "release"],
             build_file_content: nil,
-            ssh_key: nil
+            ssh_key: nil,
+            docker_username: nil,
+            docker_email: nil,
+            docker_password: nil,
+            docker_servername: "https://index.docker.io/v1/",
+            docker_image_name: "test2"
           }
         ]
       end)

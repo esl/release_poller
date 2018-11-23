@@ -2,19 +2,35 @@ defmodule Domain.Tasks.Runners.DockerBuild do
   @behaviour Domain.Tasks.Runners.Runner
 
   alias ExDockerBuild.{DockerfileParser, DockerBuild}
+  alias Domain.Tasks.Task
 
   @impl true
   def exec(task, env) do
-    %{build_file_content: build_file_content, env: extra_env} = task
+    %{
+      build_file_content: build_file_content,
+      env: extra_env,
+      docker_image_name: docker_image_name
+    } = task
 
-    DockerfileParser.parse_content!(build_file_content)
-    |> inject_env(extra_env ++ env)
-    |> DockerBuild.build("")
-    |> case do
-      {:ok, _image_id} ->
-        # TODO: push image
-        :ok
+    credentials = Task.get_docker_credentials(task)
 
+    # TODO: eval template for "templating" a string
+    # https://stackoverflow.com/questions/44340438/how-to-create-a-string-template-some-string-some-stub-var
+    {_, tag} =
+      Enum.find(env, fn {key, _value} ->
+        String.ends_with?(key, "_TAG")
+      end)
+
+    result =
+      DockerfileParser.parse_content!(build_file_content)
+      |> inject_env(extra_env ++ env)
+      |> DockerBuild.build("")
+
+    with {:ok, image_id} <- result,
+         :ok <- ExDockerBuild.tag_image(image_id, docker_image_name, tag, credentials),
+         :ok <- ExDockerBuild.push_image(docker_image_name, tag, credentials) do
+      :ok
+    else
       {:error, _} = error ->
         error
     end

@@ -26,6 +26,7 @@ defmodule RepoPoller.SetupWorker do
         Logger.info("database node is down re-scheduling setup in #{reconnect} ms")
         re_schedule_after_init(reconnect)
         {:noreply, state}
+
       {:error, reason} ->
         {:stop, reason, state}
     end
