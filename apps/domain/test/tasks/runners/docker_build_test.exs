@@ -29,8 +29,7 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
     """
 
     ExDockerBuild
-    |> stub(:tag_image, fn _image_id, docker_image_name, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: nil}
+    |> stub(:tag_image, fn _image_id, docker_image_name, tag ->
       assert tag == "v1.0.0"
       assert docker_image_name == "test"
       :ok
@@ -60,8 +59,7 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
     """
 
     ExDockerBuild
-    |> stub(:tag_image, fn _image_id, docker_image_name, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: nil}
+    |> stub(:tag_image, fn _image_id, docker_image_name, tag ->
       assert tag == "v2.0.0"
       assert docker_image_name == "test2"
       :ok
@@ -91,7 +89,7 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
     """
 
     ExDockerBuild
-    |> stub(:tag_image, fn _image_id, _docker_image_name, _tag, _credentials ->
+    |> stub(:tag_image, fn _image_id, _docker_image_name, _tag ->
       :ok
     end)
     |> stub(:push_image, fn _docker_image_name, _tag, _credentials ->
