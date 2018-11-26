@@ -26,7 +26,7 @@ defmodule Domain.MixProject do
   defp deps do
     [
       {:poison, "~> 4.0"},
-      {:ex_docker_build, "~> 0.4.0"},
+      {:ex_docker_build, "~> 0.6.0"},
       {:mox, "~> 0.4", only: :test},
       {:mimic, "~> 0.2", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},

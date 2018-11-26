@@ -29,20 +29,19 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
     """
 
     ExDockerBuild
-    |> stub(:tag_image, fn _image_id, docker_image_name, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: nil}
+    |> stub(:tag_image, fn _image_id, docker_image_repo, tag ->
       assert tag == "v1.0.0"
-      assert docker_image_name == "test"
+      assert docker_image_repo == "pepe/test"
       :ok
     end)
-    |> stub(:push_image, fn docker_image_name, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: nil}
+    |> stub(:push_image, fn docker_image_repo, tag, credentials ->
+      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: "pepe"}
       assert tag == "v1.0.0"
-      assert docker_image_name == "test"
+      assert docker_image_repo == "pepe/test"
       :ok
     end)
 
-    task = %Task{build_file_content: content, docker_image_name: "test"}
+    task = %Task{build_file_content: content, docker_image_name: "test", docker_username: "pepe"}
 
     assert :ok = DockerBuild.exec(task, [{"NO_TEST_EXTRA_ENV_TAG", "v1.0.0"}])
     assert File.exists?(@file_path)
@@ -60,20 +59,19 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
     """
 
     ExDockerBuild
-    |> stub(:tag_image, fn _image_id, docker_image_name, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: nil}
+    |> stub(:tag_image, fn _image_id, docker_image_repo, tag ->
       assert tag == "v2.0.0"
-      assert docker_image_name == "test2"
+      assert docker_image_repo == "pepe/test2"
       :ok
     end)
-    |> stub(:push_image, fn docker_image_name, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: nil}
+    |> stub(:push_image, fn docker_image_repo, tag, credentials ->
+      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: "pepe"}
       assert tag == "v2.0.0"
-      assert docker_image_name == "test2"
+      assert docker_image_repo == "pepe/test2"
       :ok
     end)
 
-    task = %Task{build_file_content: content, docker_image_name: "test2"}
+    task = %Task{build_file_content: content, docker_image_name: "test2", docker_username: "pepe"}
 
     assert :ok = DockerBuild.exec(task, [{"TEST_EXTRA_ENV_TAG", "v2.0.0"}, {"USERNAME", "kiro"}])
     assert File.exists?(@file_path)
@@ -91,7 +89,7 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
     """
 
     ExDockerBuild
-    |> stub(:tag_image, fn _image_id, _docker_image_name, _tag, _credentials ->
+    |> stub(:tag_image, fn _image_id, _docker_image_name, _tag ->
       :ok
     end)
     |> stub(:push_image, fn _docker_image_name, _tag, _credentials ->

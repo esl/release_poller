@@ -103,10 +103,20 @@ defmodule RepoJobs.Consumer do
     job = NewReleaseJobSerializer.deserialize!(payload)
     if caller, do: send(caller, {:new_release_job, job})
 
+    %{
+      repo: %{owner: owner, name: repo_name},
+      new_tag: %{name: tag_name}
+    } = job
+
+    job_name = "#{owner}/#{repo_name}##{tag_name}"
     client = Config.get_rabbitmq_client()
 
     # TODO: Maybe create a worker pool to execute jobs in parallel
     case JobRunner.run(job) do
+      {:ok, []} ->
+        :ok = client.ack(channel, delivery_tag, requeue: false)
+        if caller, do: send(caller, {:ack, []})
+
       {:ok, task_results} ->
         # if all tasks failed re-schedule the job
         Enum.all?(task_results, fn
@@ -120,10 +130,12 @@ defmodule RepoJobs.Consumer do
         else
           # TODO: Make requeuing configurable
           :ok = client.ack(channel, delivery_tag, requeue: false)
+          Logger.info("successfully ran job #{job_name}")
           if caller, do: send(caller, {:ack, task_results})
         end
 
       {:error, error} ->
+        Logger.info("[consumer] error running job reason #{inspect(error)}")
         # TODO: Make requeuing configurable
         :ok = client.reject(channel, delivery_tag, requeue: true)
         if caller, do: send(caller, {:reject, error})

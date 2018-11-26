@@ -1,6 +1,8 @@
 defmodule Domain.Tasks.Runners.DockerBuild do
   @behaviour Domain.Tasks.Runners.Runner
 
+  require Logger
+
   alias ExDockerBuild.{DockerfileParser, DockerBuild}
   alias Domain.Tasks.Task
 
@@ -13,6 +15,7 @@ defmodule Domain.Tasks.Runners.DockerBuild do
     } = task
 
     credentials = Task.get_docker_credentials(task)
+    %{docker_username: docker_username} = credentials
 
     # TODO: eval template for "templating" a string
     # https://stackoverflow.com/questions/44340438/how-to-create-a-string-template-some-string-some-stub-var
@@ -26,9 +29,12 @@ defmodule Domain.Tasks.Runners.DockerBuild do
       |> inject_env(extra_env ++ env)
       |> DockerBuild.build("")
 
+    docker_image_repo = "#{docker_username}/#{docker_image_name}"
+
     with {:ok, image_id} <- result,
-         :ok <- ExDockerBuild.tag_image(image_id, docker_image_name, tag, credentials),
-         :ok <- ExDockerBuild.push_image(docker_image_name, tag, credentials) do
+         :ok <- ExDockerBuild.tag_image(image_id, docker_image_repo, tag),
+         :ok <- ExDockerBuild.push_image(docker_image_repo, tag, credentials) do
+      Logger.info("successfully pushed image #{docker_image_repo} with version #{tag}")
       :ok
     else
       {:error, _} = error ->

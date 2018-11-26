@@ -43,6 +43,7 @@ defmodule RepoJobs.JobRunner do
     Logger.info("running task #{id} for #{job_name}")
 
     with :ok <- runner.exec(task, env) do
+      Logger.info("successfully ran task #{id} for #{job_name}")
       {:ok, task}
     else
       {:error, error} ->
@@ -64,6 +65,7 @@ defmodule RepoJobs.JobRunner do
 
     with {:ok, task} <- source.fetch(task, tmp_dir),
          :ok <- runner.exec(task, env) do
+      Logger.info("successfully ran task #{url} for #{job_name}")
       {:ok, task}
     else
       {:error, error} ->
@@ -76,7 +78,11 @@ defmodule RepoJobs.JobRunner do
   # Returns a list of tuples to be passed as environment variables to each task
   @spec generate_env(NewReleaseJob.t()) :: env()
   defp generate_env(%{repo: %{name: repo_name}, new_tag: tag}) do
-    repo_name = String.upcase(repo_name)
+    # remove punctuation symbols
+    repo_name =
+      repo_name
+      |> String.upcase()
+      |> String.replace(~r/[!#$%()*+,\-.\/:;?@_`~]/, "_")
 
     %{
       name: tag_name,
