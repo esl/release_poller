@@ -323,6 +323,39 @@ defmodule RepoJobs.Integration.ConsumerTest do
                "[error] error running task https://github.com/f@k32/fake for elixir-lang/elixir#v1.7.2 reason: :eaccess"
     end
 
+    # Silence crash logs
+    @tag capture_log: true
+    test "exception running job's tasks rejects job", %{
+      repo: repo,
+      channel: channel,
+      pool_id: pool_id
+    } do
+      start_supervised!({Consumer, {self(), pool_id}})
+
+      %{tags: [tag]} = repo
+
+      task = %Task{id: 1, runner: Domain.TaskMockRunner, build_file_content: "This is a test"}
+
+      Domain.Service.MockDatabase
+      |> expect(:get_repo_tasks, fn _url ->
+        {:ok, [task]}
+      end)
+
+      Domain.TaskMockRunner
+      |> expect(:exec, fn
+        _task, _env -> raise "kaboom"
+      end)
+
+      payload =
+        repo
+        |> NewReleaseJob.new(tag)
+        |> NewReleaseJobSerializer.serialize!()
+
+      :ok = RabbitMQ.publish(channel, "", @queue, payload)
+      assert_receive {:new_release_job, _}, 1000
+      assert_receive {:reject, %RuntimeError{message: "kaboom"}}, 1000
+    end
+
     test "successfully process a dockerbuild task", %{
       repo: repo,
       channel: channel,
