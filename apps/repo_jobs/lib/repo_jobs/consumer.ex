@@ -142,13 +142,12 @@ defmodule RepoJobs.Consumer do
           :ok = client.reject(channel, delivery_tag, requeue: true)
           if caller, do: send(caller, {:reject, error})
       end
-
-      {:noreply, state}
     rescue
       exception ->
         :ok = client.reject(channel, delivery_tag, requeue: true)
         if caller, do: send(caller, {:reject, exception})
-        {:stop, exception, state}
+    after
+      {:noreply, state}
     end
   end
 
