@@ -1,7 +1,7 @@
 defmodule RepoPoller.SetupSupervisor do
   use Supervisor
 
-  alias RepoPoller.{PollerSupervisor, SetupWorker}
+  alias RepoPoller.{PollerSupervisor, SetupWorker, SetupQueueWorker}
 
   def start_link(args \\ []) do
     name = Keyword.get(args, :name, __MODULE__)
@@ -10,6 +10,7 @@ defmodule RepoPoller.SetupSupervisor do
 
   def init(_) do
     children = [
+      {SetupQueueWorker, []},
       {PollerSupervisor, []},
       {SetupWorker, []}
     ]
