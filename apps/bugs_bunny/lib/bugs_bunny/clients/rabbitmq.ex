@@ -36,4 +36,19 @@ defmodule BugsBunny.RabbitMQ do
   def close_connection(conn) do
     Connection.close(conn)
   end
+
+  @impl true
+  def declare_queue(channel, queue \\ "", options \\ []) do
+    Queue.declare(channel, queue, options)
+  end
+
+  @impl true
+  def declare_exchange(channel, exchange, type \\ :direct, options \\ []) do
+    Exchange.declare(channel, exchange, type, options)
+  end
+
+  @impl true
+  def queue_bind(channel, queue, exchange, options \\ []) do
+    Queue.bind(channel, queue, exchange, options)
+  end
 end

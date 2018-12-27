@@ -49,4 +49,19 @@ defmodule BugsBunny.FakeRabbitMQ do
     #  Connection.close(conn)
     :ok
   end
+
+  @impl true
+  def declare_queue(_channel, _queue, _options \\ []) do
+    {:ok, %{}}
+  end
+
+  @impl true
+  def declare_exchange(_channel, _exchange, _type \\ :direct, _options \\ []) do
+    :ok
+  end
+
+  @impl true
+  def queue_bind(_channel, _queue, _exchange, _options \\ []) do
+    :ok
+  end
 end
