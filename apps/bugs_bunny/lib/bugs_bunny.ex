@@ -89,9 +89,9 @@ defmodule BugsBunny do
     do_with_conn(conn_worker, fn
       {:ok, channel} ->
         with {:ok, _} <- adapter.declare_queue(channel, queue, queue_options),
-             :ok <- Logger.info("#{queue} successfully declared"),
+             :ok <- Logger.info("queue: #{queue} successfully declared"),
              :ok <- adapter.declare_exchange(channel, exchange, type, exchange_options),
-             :ok <- Logger.info("#{exchange} successfully declared"),
+             :ok <- Logger.info("exchange #{exchange} successfully declared"),
              :ok <- adapter.queue_bind(channel, queue, exchange, bind_options),
              :ok <- Logger.info("#{queue} successfully bound to #{exchange}") do
           :ok

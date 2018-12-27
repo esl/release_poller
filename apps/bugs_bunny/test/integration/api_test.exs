@@ -154,4 +154,23 @@ defmodule BugsBunny.Integration.ApiTest do
       assert {:ok, _} = AMQP.Queue.delete(channel, "test_queue")
     end)
   end
+
+  test "should not fail when binding and declaring default exchange", %{pool_id: pool_id} do
+    assert :ok =
+             BugsBunny.create_queue_with_bind(
+               RabbitMQ,
+               pool_id,
+               "test2_queue",
+               "",
+               :direct,
+               queue_options: [auto_delete: true],
+               exchange_options: [auto_delete: true]
+             )
+
+    BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
+      assert :ok = AMQP.Basic.publish(channel, "", "test2_queue", "Hello, World!")
+      assert {:ok, "Hello, World!", _meta} = AMQP.Basic.get(channel, "test2_queue")
+      assert {:ok, _} = AMQP.Queue.delete(channel, "test2_queue")
+    end)
+  end
 end
