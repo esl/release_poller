@@ -1,4 +1,6 @@
 defmodule BugsBunny do
+  require Logger
+
   alias BugsBunny.Worker.RabbitConnection, as: Conn
 
   @type f :: ({:ok, AMQP.Channel.t()} | {:error, :disconected | :out_of_channels} -> any())
@@ -69,5 +71,36 @@ defmodule BugsBunny do
       {:error, _} = error ->
         fun.(error)
     end
+  end
+
+  @spec create_queue_with_bind(
+          module(),
+          AMQP.Basic.queue(),
+          AMQP.Basic.exchange(),
+          type :: atom(),
+          keyword()
+        ) :: :ok | AMQP.Basic.error() | {:error, any()}
+  def create_queue_with_bind(adapter, pool_id, queue, exchange, type \\ :direct, options \\ []) do
+    queue_options = Keyword.get(options, :queue_options, [])
+    exchange_options = Keyword.get(options, :exchange_options, [])
+    bind_options = Keyword.get(options, :bind_options, [])
+    conn_worker = get_connection_worker(pool_id)
+
+    do_with_conn(conn_worker, fn
+      {:ok, channel} ->
+        with {:ok, _} <- adapter.declare_queue(channel, queue, queue_options),
+             :ok <- Logger.info("queue: #{queue} successfully declared"),
+             :ok <- adapter.declare_exchange(channel, exchange, type, exchange_options),
+             :ok <- Logger.info("exchange #{exchange} successfully declared"),
+             :ok <- adapter.queue_bind(channel, queue, exchange, bind_options),
+             :ok <- Logger.info("#{queue} successfully bound to #{exchange}") do
+          :ok
+        else
+          {:error, _} = error -> error
+        end
+
+      {:error, _} = error ->
+        error
+    end)
   end
 end
