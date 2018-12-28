@@ -18,6 +18,6 @@ defmodule RepoPoller.SetupQueueWorker do
       exchange_options: [durable: true]
     )
 
-    {:ok, :ignore}
+    :ignore
   end
 end
