@@ -33,7 +33,8 @@ defmodule RepoPoller.MixProject do
       {:domain, in_umbrella: true},
       {:poison, "~> 4.0"},
       {:httpoison, "~> 1.3.0", override: true},
-      {:mox, "~> 0.4", only: :test}
+      {:mox, "~> 0.4", only: :test},
+      {:horde, git: "https://github.com/derekkraan/horde", branch: "master"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:sibling_app_in_umbrella, in_umbrella: true},
