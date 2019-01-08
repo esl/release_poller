@@ -43,54 +43,29 @@ $> docker container rm roger_rabbit
 ```ex
 # Repo Poller Config
 
-config :repo_poller, :repos, [
-  {
-    # repo to poll
-    "https://github.com/erlang/otp",
-    # how to poll that repo (we only support github for now)
-    RepoPoller.Repository.Github,
-    # poll interval in seconds
-    3600,
-    # tasks
-    [
-      [
-        # task to fetch
-        url: "https://github.com/emqtt/emqttd",
-        # commands or targets to execute secuentially
-        commands: ["app", "rel"],
-        # how to fetch the task
-        source: Domain.Tasks.Sources.Github,
-        # how to build, execute the task
-        runner: Domain.Tasks.Runners.Make,
-        # {Key, Value} tuples to pass as ENV to make please refer to [System.cmd/3](https://hexdocs.pm/elixir/System.html#cmd/3)
-        env: []
-      ]
-    ]
-  }
-]
-
 config :repo_poller, :github_auth, GITHUB_TOKEN # default System.get_env("GITHUB_AUTH")
 
 # RabbitMQ Connection Config
 
+# Optional, just QUEUE_NAME is required either in config or in ENV
 config :repo_poller, :rabbitmq_config,
-  host: "localhost",
-  port: 5672,
-  channels: 1000,
+  host: "localhost", # optional
+  port: 5672,        # optional
+  channels: 1000,    # optional
   queue: QUEUE_NAME, # required
-  exchange: "",
-  reconnect: 1000,
-  password: "guest",
-  username: "guest"
+  exchange: "",      # optional
+  reconnect: 1000,   # optional
+  password: "guest", # optional
+  username: "guest"  # optional
 
 # RabbitMQ Connection Pool Config
 
 config :repo_poller, :rabbitmq_conn_pool,
-  pool_id: POOL_NAME, # required
-  name: {:local, POOL_NAME}, # required
-  worker_module: BugsBunny.Worker.RabbitConnection,
-  size: 2,
-  max_overflow: 0
+  pool_id: POOL_NAME,                               # required
+  name: {:local, POOL_NAME},                        # required
+  worker_module: BugsBunny.Worker.RabbitConnection, # required
+  size: 2,                                          # required
+  max_overflow: 0                                   # required
 ```
 
 # Repo Jobs
@@ -104,24 +79,32 @@ config :repo_jobs, :consumers, NUMBER_OF_CONSUMERS # required
 
 # RabbitMQ Connection Config
 
+# Optional, just QUEUE_NAME is required either in config or in ENV
 config :repo_jobs, :rabbitmq_config,
-  host: "localhost",
-  port: 5672,
-  channels: 1000,
+  host: "localhost", # optional
+  port: 5672,        # optional
+  channels: 1000,    # optional
   queue: QUEUE_NAME, # required
-  exchange: "",
-  reconnect: 1000,
-  password: "guest",
-  username: "guest"
+  exchange: "",      # optional
+  reconnect: 1000,   # optional
+  password: "guest", # optional
+  username: "guest"  # optional
 
 # RabbitMQ Connection Pool Config
 
 config :repo_jobs, :rabbitmq_conn_pool,
-  pool_id: POOL_NAME, # required
-  name: {:local, POOL_NAME}, # required
-  worker_module: BugsBunny.Worker.RabbitConnection,
-  size: 2,
-  max_overflow: 0
+  pool_id: POOL_NAME,                               # required
+  name: {:local, POOL_NAME},                        # required
+  worker_module: BugsBunny.Worker.RabbitConnection, # required
+  size: 2,                                          # required
+  max_overflow: 0                                   # required
+```
+
+## Environment
+
+```bash
+# Use this ENV variable if not using `config :repo_*, :rabbitmq_config, [queue: NAME]`
+export QUEUE_NAME="new_releases.queue"
 ```
 
 ## Setup releases
@@ -138,5 +121,14 @@ MIX_ENV=prod mix release --name=poller
 _build/prod/rel/poller/bin/poller foreground
 ```
 
-`iex --name jobs@127.0.0.1 --cookie hola -S mix`
-`iex --name poller@127.0.0.1 --cookie hola -S mix`
+## Development
+
+```bash
+cd apps/repo_jobs
+iex --name jobs@127.0.0.1 --cookie hola -S mix
+```
+
+```bash
+cd apps/repo_poller
+iex --name poller@127.0.0.1 --cookie hola -S mix
+```
