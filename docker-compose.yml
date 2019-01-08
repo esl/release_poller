@@ -1,0 +1,28 @@
+version: '3.2'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.7.7-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  poller:
+    build:
+      context: .
+      dockerfile: poller.dockerfile
+    environment:
+      QUEUE_NAME: ${QUEUE_NAME}
+      GITHUB_AUTH: ${GITHUB_AUTH}
+      POLLER_NODES: ${POLLER_NODES}
+    depends_on:
+      - rabbitmq
+
+  jobs:
+    build:
+      context: .
+      dockerfile: jobs.dockerfile
+    environment:
+      QUEUE_NAME: ${QUEUE_NAME}
+    depends_on:
+      - rabbitmq
