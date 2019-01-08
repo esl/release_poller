@@ -6,6 +6,12 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
+    # https://stackoverflow.com/questions/31746182/docker-compose-wait-for-container-x-before-starting-y
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   poller:
     build:
@@ -17,6 +23,8 @@ services:
       POLLER_NODES: ${POLLER_NODES}
     depends_on:
       - rabbitmq
+    links:
+      - rabbitmq
 
   jobs:
     build:
@@ -25,4 +33,6 @@ services:
     environment:
       QUEUE_NAME: ${QUEUE_NAME}
     depends_on:
+      - rabbitmq
+    links:
       - rabbitmq
