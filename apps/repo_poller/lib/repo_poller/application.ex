@@ -5,7 +5,7 @@ defmodule RepoPoller.Application do
 
   use Application
 
-  alias RepoPoller.{SetupSupervisor, Config}
+  alias RepoPoller.{SetupSupervisor, Config, ClusterConnector}
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -15,6 +15,9 @@ defmodule RepoPoller.Application do
     children = [
       {BugsBunny.PoolSupervisor,
        [rabbitmq_config: rabbitmq_config, rabbitmq_conn_pool: rabbitmq_conn_pool]},
+      {Horde.Registry, [name: RepoPoller.DistributedRegistry, keys: :unique]},
+      {Horde.Supervisor, [name: RepoPoller.DistributedSupervisor, strategy: :one_for_one]},
+      {ClusterConnector, []},
       {SetupSupervisor, []}
     ]
 

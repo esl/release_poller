@@ -52,4 +52,17 @@ defmodule RepoPoller.Config do
   def get_database_reconnection_interval() do
     Application.get_env(:repo_poller, :database_reconnect, 5000)
   end
+
+  def get_nodes() do
+    case Application.get_env(:repo_poller, :poller_nodes) do
+      nil ->
+        "POLLER_NODES"
+        |> System.get_env()
+        |> String.split(",")
+        |> Enum.map(&String.to_atom/1)
+
+      nodes ->
+        nodes
+    end
+  end
 end
