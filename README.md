@@ -123,6 +123,14 @@ _build/prod/rel/poller/bin/poller foreground
 
 ## Development
 
+in another terminal window, setup the admin server so poller and jobs
+can get the repositories, tags and tasks out of it.
+
+```bash
+cd PATH/TO/ADMIN
+iex --name admin@127.0.0.1 --cookie hola -S mix phx.server
+```
+
 ```bash
 cd apps/repo_jobs
 iex --name jobs@127.0.0.1 --cookie hola -S mix
