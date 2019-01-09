@@ -8,7 +8,7 @@ services:
       - 15672:15672
     # https://stackoverflow.com/questions/31746182/docker-compose-wait-for-container-x-before-starting-y
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      test: ["CMD", "curl", "-f", "http://rabbitmq:15672"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -21,6 +21,7 @@ services:
       QUEUE_NAME: ${QUEUE_NAME}
       GITHUB_AUTH: ${GITHUB_AUTH}
       POLLER_NODES: ${POLLER_NODES}
+      RABBIT_HOST: ${RABBIT_HOST}
     depends_on:
       - rabbitmq
     links:
@@ -32,6 +33,7 @@ services:
       dockerfile: jobs.dockerfile
     environment:
       QUEUE_NAME: ${QUEUE_NAME}
+      RABBIT_HOST: ${RABBIT_HOST}
     depends_on:
       - rabbitmq
     links:

@@ -1,0 +1,6 @@
+.git
+*.dockerfile
+README.md
+_build
+deps
+docker-compose*
