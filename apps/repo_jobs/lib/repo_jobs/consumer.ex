@@ -118,6 +118,7 @@ defmodule RepoJobs.Consumer do
         {:ok, []} ->
           :ok = client.ack(channel, delivery_tag, requeue: false)
           if caller, do: send(caller, {:ack, []})
+          {:noreply, state}
 
         {:ok, task_results} ->
           # if all tasks failed re-schedule the job
@@ -135,19 +136,20 @@ defmodule RepoJobs.Consumer do
             Logger.info("successfully ran job #{job_name}")
             if caller, do: send(caller, {:ack, task_results})
           end
+          {:noreply, state}
 
         {:error, error} ->
           Logger.info("[consumer] error running job reason #{inspect(error)}")
           # TODO: Make requeuing configurable
           :ok = client.reject(channel, delivery_tag, requeue: true)
           if caller, do: send(caller, {:reject, error})
+          {:noreply, state}
       end
     rescue
       exception ->
         :ok = client.reject(channel, delivery_tag, requeue: true)
         if caller, do: send(caller, {:reject, exception})
-    after
-      {:noreply, state}
+        {:noreply, state}
     end
   end
 
