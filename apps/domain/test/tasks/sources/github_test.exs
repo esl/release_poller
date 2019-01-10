@@ -31,7 +31,7 @@ defmodule Domain.Tasks.Sources.GithubTest do
     end)
   end
 
-  test "deletes previusly downloaded dir", %{base_dir: base_dir} do
+  test "deletes previously downloaded dir", %{base_dir: base_dir} do
     capture_io(fn ->
       exisiting_dir = Path.join([base_dir, "elixir-lang/elixir", "to_be_removed"])
       :ok = exisiting_dir |> File.mkdir_p!()

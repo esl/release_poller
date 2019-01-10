@@ -1,7 +1,5 @@
-defmodule RepoPoller.SetupQueueWorkerTest do
-  use ExUnit.Case, async: true
-
-  alias RepoPoller.SetupQueueWorker
+defmodule BugsBunny.Integration.SetupQueueTest do
+  use ExUnit.Case
 
   @moduletag :integration
   @queue "test.queue"
@@ -14,7 +12,9 @@ defmodule RepoPoller.SetupQueueWorkerTest do
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: @queue,
       exchange: "my_exchange",
-      caller: caller
+      caller: caller,
+      queue_options: [auto_delete: true],
+      exchange_options: [auto_delete: true]
     ]
 
     rabbitmq_conn_pool = [
@@ -25,10 +25,6 @@ defmodule RepoPoller.SetupQueueWorkerTest do
       size: 1,
       max_overflow: 0
     ]
-
-    Application.put_env(:repo_poller, :rabbitmq_config, rabbitmq_config)
-    Application.put_env(:repo_poller, :rabbitmq_conn_pool, rabbitmq_conn_pool)
-    Application.put_env(:repo_poller, :database, Domain.Service.MockDatabase)
 
     start_supervised!(%{
       id: BugsBunny.PoolSupervisorTest,
@@ -45,8 +41,6 @@ defmodule RepoPoller.SetupQueueWorkerTest do
   end
 
   test "declare queue on startup", %{pool_id: pool_id} do
-    _worker_pid = start_supervised!(SetupQueueWorker)
-
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       assert :ok = AMQP.Basic.publish(channel, "my_exchange", "", "Hello, World!")
       assert {:ok, "Hello, World!", _meta} = AMQP.Basic.get(channel, @queue)

@@ -2,7 +2,7 @@ defmodule RepoPoller.Integration.PollerTest do
   use ExUnit.Case
   import Mox
 
-  alias AMQP.{Connection, Channel, Queue, Basic}
+  alias AMQP.Basic
 
   alias RepoPoller.Poller
   alias RepoPoller.Repository.GithubFake
@@ -19,23 +19,6 @@ defmodule RepoPoller.Integration.PollerTest do
   setup :verify_on_exit!
 
   setup do
-    # setup test queue in RabbitMQ
-
-    rabbitmq_config = [
-      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672")
-    ]
-
-    {:ok, conn} = Connection.open(rabbitmq_config)
-    {:ok, channel} = Channel.open(conn)
-    {:ok, %{queue: queue}} = Queue.declare(channel, @queue)
-
-    on_exit(fn ->
-      {:ok, _} = Queue.delete(channel, queue)
-      :ok = Connection.close(conn)
-    end)
-  end
-
-  setup do
     caller = self()
 
     rabbitmq_config = [
@@ -43,7 +26,9 @@ defmodule RepoPoller.Integration.PollerTest do
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: @queue,
       exchange: "",
-      caller: caller
+      caller: caller,
+      queue_options: [auto_delete: true],
+      exchange_options: [auto_delete: true]
     ]
 
     rabbitmq_conn_pool = [

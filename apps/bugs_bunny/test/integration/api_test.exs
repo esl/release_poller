@@ -17,7 +17,9 @@ defmodule BugsBunny.Integration.ApiTest do
       # fire and forget queue
       queue: "",
       exchange: "",
-      adapter: RabbitMQ
+      adapter: RabbitMQ,
+      queue_options: [auto_delete: true, exclusive: true],
+      exchange_options: [auto_delete: true, exclusive: true]
     ]
 
     rabbitmq_conn_pool = [
