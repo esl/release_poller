@@ -17,7 +17,7 @@ defmodule BugsBunny.Integration.ApiTest do
       # fire and forget queue
       queue: "",
       exchange: "",
-      client: RabbitMQ
+      adapter: RabbitMQ
     ]
 
     rabbitmq_conn_pool = [
@@ -166,7 +166,6 @@ defmodule BugsBunny.Integration.ApiTest do
                queue_options: [auto_delete: true],
                exchange_options: [auto_delete: true]
              )
-
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       assert :ok = AMQP.Basic.publish(channel, "", "test2_queue", "Hello, World!")
       assert {:ok, "Hello, World!", _meta} = AMQP.Basic.get(channel, "test2_queue")

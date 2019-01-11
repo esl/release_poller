@@ -11,6 +11,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
 
     @enforce_keys [:config]
     @type t :: %__MODULE__{
+            adapter: module(),
             connection: AMQP.Connection.t(),
             channels: list(AMQP.Channel.t()),
             # TODO: use an ets table to persist the monitors
@@ -18,7 +19,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
             config: config()
           }
 
-    defstruct connection: nil, channels: [], config: nil, monitors: []
+    defstruct adapter: BugsBunny.RabbitMQ, connection: nil, channels: [], config: nil, monitors: []
   end
 
   ##############
@@ -69,16 +70,21 @@ defmodule BugsBunny.Worker.RabbitConnection do
   def init(config) do
     Process.flag(:trap_exit, true)
     send(self(), :connect)
-    {:ok, %State{config: config}}
+
+    # split our opts from the ones passed to the amqp client
+    {opts, amqp_config} = Keyword.split(config, [:adapter])
+    adapter = Keyword.get(opts, :adapter, BugsBunny.RabbitMQ)
+
+    {:ok, %State{adapter: adapter, config: amqp_config}}
   end
 
   @impl true
-  def handle_call(:conn, _from, %{connection: nil} = state) do
+  def handle_call(:conn, _from, %State{connection: nil} = state) do
     {:reply, {:error, :disconnected}, state}
   end
 
   @impl true
-  def handle_call(:conn, _from, %{connection: connection} = state) do
+  def handle_call(:conn, _from, %State{connection: connection} = state) do
     {:reply, {:ok, connection}, state}
   end
 
@@ -86,7 +92,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # TODO: add overflow support
   # TODO: maybe make the checkout_channel call async/sync with GenServer.reply/2
   @impl true
-  def handle_call(:checkout_channel, _from, %{connection: nil} = state) do
+  def handle_call(:checkout_channel, _from, %State{connection: nil} = state) do
     {:reply, {:error, :disconnected}, state}
   end
 
@@ -118,11 +124,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
   # holding it and deletes the monitor from the monitors list
   @impl true
   def handle_cast({:checkin_channel, channel}, %{channels: channels, monitors: monitors} = state) do
-    monitors
-    |> Enum.find(fn {_ref, chan} ->
-      channel == chan
-    end)
-    |> case do
+    case Enum.find(monitors, fn {_ref, c} -> channel == c end) do
       # checkin unmonitored channel :thinking_face:
       nil ->
         {:noreply, state}
@@ -135,9 +137,36 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   @impl true
-  def handle_info(:connect, %{config: config, config: config} = state) do
-    get_client(config).open_connection(config)
-    |> handle_rabbit_connect(state)
+  def handle_info(:connect, %{adapter: adapter, config: config} = state) do
+    # TODO: add exponential backoff for reconnects
+    # TODO: stop the worker when we couldn't reconnect several times
+    case adapter.open_connection(config) do
+      {:error, reason} ->
+        Logger.error("[Rabbit] error reason: #{inspect(reason)}")
+        # TODO: use exponential backoff to reconnect
+        # TODO: use circuit breaker to fail fast
+        schedule_connect(config)
+        {:noreply, state}
+
+      {:ok, connection} ->
+        Logger.info("[Rabbit] connected")
+        %{pid: pid} = connection
+        # link itself to the connection `pid` to handle connection
+        # errors and spawn as many channels as needed based on config
+        # defaults to `1_000`
+        true = Process.link(pid)
+
+        num_channels = Keyword.get(config, :channels, @default_channels)
+
+        channels =
+        for _ <- 1..num_channels do
+          {:ok, channel} = start_channel(adapter, connection)
+
+          channel
+        end
+
+        {:noreply, %State{state | connection: connection, channels: channels}}
+    end
   end
 
   # connection crashed
@@ -158,11 +187,11 @@ defmodule BugsBunny.Worker.RabbitConnection do
     {:noreply, %State{state | channels: new_channels}}
   end
 
-  # connection didn't crashed but a channel did
+  # connection did not crash but a channel did
   @impl true
   def handle_info(
         {:EXIT, pid, reason},
-        %{channels: channels, connection: conn, config: config, monitors: monitors} = state
+        %{channels: channels, connection: conn, adapter: adapter, monitors: monitors} = state
       ) do
     Logger.error("[Rabbit] channel lost, attempting to reconnect reason: #{inspect(reason)}")
     # TODO: use exponential backoff to reconnect
@@ -172,10 +201,7 @@ defmodule BugsBunny.Worker.RabbitConnection do
         channel_pid != pid
       end)
 
-    {:ok, channel} =
-      config
-      |> get_client()
-      |> start_channel(conn)
+    {:ok, channel} = start_channel(adapter, conn)
 
     monitors
     |> Enum.find(fn {_ref, %{pid: chan_id}} ->
@@ -215,9 +241,9 @@ defmodule BugsBunny.Worker.RabbitConnection do
   end
 
   @impl true
-  def terminate(_reason, %{connection: connection, config: config}) do
+  def terminate(_reason, %{connection: connection, adapter: adapter}) do
     try do
-      get_client(config).close_connection(connection)
+      adapter.close_connection(connection)
     catch
       _, _ -> :ok
     end
@@ -230,41 +256,6 @@ defmodule BugsBunny.Worker.RabbitConnection do
   #############
   # Internals #
   #############
-
-  # TODO: add exponential backoff for reconnects
-  # TODO: stop the worker when we couldn't reconnect several times
-  @spec handle_rabbit_connect(connection_result, State.t()) :: {:noreply, State.t()}
-        when connection_result: {:error, any()} | {:ok, AMQP.Connection.t()}
-  defp handle_rabbit_connect({:error, reason}, %{config: config} = state) do
-    Logger.error("[Rabbit] error reason: #{inspect(reason)}")
-    # TODO: use exponential backoff to reconnect
-    # TODO: use circuit breaker to fail fast
-    schedule_connect(config)
-    {:noreply, state}
-  end
-
-  # Handles RabbitMQ successfull connection, links itself to the connection `pid`
-  # to handle connection errors and spawn as many channels as needed based on
-  # config defaults to `1_000`
-  defp handle_rabbit_connect({:ok, connection}, %State{config: config} = state) do
-    Logger.info("[Rabbit] connected")
-    %{pid: pid} = connection
-    true = Process.link(pid)
-
-    num_channels = Keyword.get(config, :channels, @default_channels)
-
-    channels =
-      for _ <- 1..num_channels do
-        {:ok, channel} =
-          config
-          |> get_client()
-          |> start_channel(connection)
-
-        channel
-      end
-
-    {:noreply, %State{state | connection: connection, channels: channels}}
-  end
 
   defp schedule_connect(config) do
     interval = get_reconnect_interval(config)
@@ -292,12 +283,6 @@ defmodule BugsBunny.Worker.RabbitConnection do
         Logger.error("[Rabbit] error starting channel reason: #{inspect(error)}")
         {:error, error}
     end
-  end
-
-  # RabbitMQ Client can be injected for testing purposes (maybe in the future we can inject a test
-  # double so we don't depend on RabbitMQ to be configured in acceptance/unit tests)
-  defp get_client(config) do
-    Keyword.get(config, :client, BugsBunny.RabbitMQ)
   end
 
   defp get_reconnect_interval(config) do

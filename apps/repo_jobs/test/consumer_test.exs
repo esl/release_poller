@@ -17,7 +17,7 @@ defmodule RepoJobs.ConsumerTest do
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: "test.queue",
       exchange: "",
-      client: FakeRabbitMQ,
+      adapter: FakeRabbitMQ,
       caller: caller,
       reconnect: 10
     ]
