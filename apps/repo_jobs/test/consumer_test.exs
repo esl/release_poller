@@ -1,5 +1,6 @@
 defmodule RepoJobs.ConsumerTest do
-  use ExUnit.Case, async: true
+  # async: false to appease the ExUnit.CaptureLog
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 
