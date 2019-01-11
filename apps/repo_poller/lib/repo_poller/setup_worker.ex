@@ -24,7 +24,8 @@ defmodule RepoPoller.SetupWorker do
       {:error, :nodedown} ->
         reconnect = Config.get_database_reconnection_interval()
         Logger.info("database node is down re-scheduling setup in #{reconnect} ms")
-        re_schedule_after_init(reconnect)
+        # TODO: use backoff for reconnections
+        Process.send_after(self(), :after_init, reconnect)
         {:noreply, state}
 
       {:error, reason} ->
@@ -47,10 +48,5 @@ defmodule RepoPoller.SetupWorker do
       {:error, _} = error ->
         error
     end
-  end
-
-  defp re_schedule_after_init(interval) do
-    # TODO: use backoff for reconnections
-    Process.send_after(self(), :after_init, interval)
   end
 end
