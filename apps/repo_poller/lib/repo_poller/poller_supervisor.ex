@@ -32,16 +32,8 @@ defmodule RepoPoller.PollerSupervisor do
         adapter: adapter,
         github_token: token
       }) do
-    pool_id = Config.get_connection_pool_id()
-    repo = Repo.new(url, interval * 1000, adapter, token)
-
-    adapter = setup_adapter(adapter)
-
-    DynamicSupervisor.start_child(__MODULE__, %{
-      id: "poller_#{repo.name}",
-      start: {Poller, :start_link, [{repo, adapter, pool_id}]},
-      restart: :transient
-    })
+    Repo.new(url, interval * 1000, adapter, token)
+    |> start_child()
   end
 
   def stop_child(repository_url) do
