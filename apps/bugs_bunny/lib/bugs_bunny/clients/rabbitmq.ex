@@ -1,5 +1,8 @@
 defmodule BugsBunny.RabbitMQ do
+  require Logger
+
   @behaviour BugsBunny.Clients.Adapter
+
   use AMQP
 
   @impl true
@@ -39,7 +42,14 @@ defmodule BugsBunny.RabbitMQ do
 
   @impl true
   def declare_queue(channel, queue \\ "", options \\ []) do
-    Queue.declare(channel, queue, options)
+    case Queue.declare(channel, queue, options) do
+      {:ok, res} ->
+        Logger.info("queue: #{queue} successfully declared")
+        {:ok, res}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   @impl true
@@ -48,7 +58,11 @@ defmodule BugsBunny.RabbitMQ do
   def declare_exchange(_channel, "", _type, _options), do: :ok
 
   def declare_exchange(channel, exchange, type, options) do
-    Exchange.declare(channel, exchange, type, options)
+    case Exchange.declare(channel, exchange, type, options) do
+      :ok ->
+        Logger.info("exchange #{exchange} successfully declared")
+        :ok
+    end
   end
 
   @impl true
@@ -57,6 +71,10 @@ defmodule BugsBunny.RabbitMQ do
   def queue_bind(_channel, _queue, "", _options), do: :ok
 
   def queue_bind(channel, queue, exchange, options) do
-    Queue.bind(channel, queue, exchange, options)
+    case Queue.bind(channel, queue, exchange, options) do
+      :ok ->
+        Logger.info("#{queue} successfully bound to #{exchange}")
+        :ok
+    end
   end
 end
