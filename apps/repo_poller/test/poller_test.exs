@@ -226,7 +226,6 @@ defmodule RepoPoller.PollerTest do
              assert_receive {:error, :rate_limit, retry}
              assert_receive {:error, :rate_limit, ^retry}
            end) =~ "rate limit reached for repo: rate-limit/fake retrying in 50 ms"
-    :timer.sleep 200
   end
 
   test "handles errors when polling fails due to a custom error", %{pool_id: pool_id} do

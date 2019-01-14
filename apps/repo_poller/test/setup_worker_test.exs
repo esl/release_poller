@@ -1,5 +1,5 @@
 defmodule RepoPoller.SetupWorkerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import Mox
 
   alias RepoPoller.{SetupWorker, PollerSupervisor, Poller}
@@ -74,7 +74,6 @@ defmodule RepoPoller.SetupWorkerTest do
              end)
 
     worker_pid = Process.whereis(:f@k3)
-    :timer.sleep 200
     assert worker_pid
     assert %{repo: %{url: "https://github.com/no-tags/f@k3"}} = Poller.state(worker_pid)
   end
