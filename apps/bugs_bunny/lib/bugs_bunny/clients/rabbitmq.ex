@@ -62,6 +62,9 @@ defmodule BugsBunny.RabbitMQ do
       :ok ->
         Logger.info("exchange #{exchange} successfully declared")
         :ok
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
@@ -75,6 +78,9 @@ defmodule BugsBunny.RabbitMQ do
       :ok ->
         Logger.info("#{queue} successfully bound to #{exchange}")
         :ok
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 end
