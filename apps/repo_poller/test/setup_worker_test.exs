@@ -1,5 +1,5 @@
 defmodule RepoPoller.SetupWorkerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import Mox
 
   alias RepoPoller.{SetupWorker, PollerSupervisor, Poller}
@@ -105,6 +105,7 @@ defmodule RepoPoller.SetupWorkerTest do
              wait_for(fn ->
                %{workers: num} = DynamicSupervisor.count_children(PollerSupervisor)
                num == 1
+               :timer.sleep(200)
              end)
 
     worker_pid = Process.whereis(:f@k3)

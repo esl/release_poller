@@ -32,7 +32,7 @@ defmodule RepoJobs.Config do
 
   def get_rabbitmq_client() do
     get_rabbitmq_config()
-    |> Keyword.get(:client, BugsBunny.RabbitMQ)
+    |> Keyword.get(:adapter, BugsBunny.RabbitMQ)
   end
 
   def get_rabbitmq_reconnection_interval() do

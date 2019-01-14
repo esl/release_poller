@@ -35,7 +35,12 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
       :ok
     end)
     |> stub(:push_image, fn docker_image_repo, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: "pepe"}
+      assert credentials == %{
+               docker_password: nil,
+               docker_servername: nil,
+               docker_username: "pepe"
+             }
+
       assert tag == "v1.0.0"
       assert docker_image_repo == "pepe/test"
       :ok
@@ -65,7 +70,12 @@ defmodule Domain.Tasks.Runners.DockerBuildTest do
       :ok
     end)
     |> stub(:push_image, fn docker_image_repo, tag, credentials ->
-      assert credentials == %{docker_password: nil, docker_servername: nil, docker_username: "pepe"}
+      assert credentials == %{
+               docker_password: nil,
+               docker_servername: nil,
+               docker_username: "pepe"
+             }
+
       assert tag == "v2.0.0"
       assert docker_image_repo == "pepe/test2"
       :ok

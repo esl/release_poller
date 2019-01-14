@@ -14,7 +14,7 @@ defmodule BugsBunny.Integration.RabbitConnectionTest do
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: "test.queue",
       exchange: "",
-      client: RabbitMQ
+      adapter: RabbitMQ
     ]
 
     {:ok, config: rabbitmq_config}

@@ -43,7 +43,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
       port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672"),
       queue: @queue,
       exchange: "",
-      client: RabbitMQ
+      adapter: RabbitMQ
     ]
 
     rabbitmq_conn_pool = [
