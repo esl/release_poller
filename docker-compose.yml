@@ -22,6 +22,7 @@ services:
       GITHUB_AUTH: ${GITHUB_AUTH}
       POLLER_NODES: ${POLLER_NODES}
       RABBIT_HOST: ${RABBIT_HOST}
+      NODE_COOKIE: ${NODE_COOKIE}
     depends_on:
       - rabbitmq
     links:
@@ -34,6 +35,7 @@ services:
     environment:
       QUEUE_NAME: ${QUEUE_NAME}
       RABBIT_HOST: ${RABBIT_HOST}
+      NODE_COOKIE: ${NODE_COOKIE}
     depends_on:
       - rabbitmq
     links:

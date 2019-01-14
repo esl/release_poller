@@ -41,6 +41,7 @@ environment :prod do
   set(include_erts: false)
   set(include_src: false)
   set(cookie: :"2!!icJ[Bs)bWBqj&BBWWUGm`sfOn|r3a5luB;A0/BVPiGy/MD?R[@(G{5*;$]F=R")
+  set(vm_args: "rel/vm.args")
 end
 
 # You may define one or more releases in this file.

@@ -20,6 +20,7 @@ RUN mix compile
 # create release
 RUN mix release --name=poller
 
+ENV REPLACE_OS_VARS=true
 ENTRYPOINT ["_build/prod/rel/poller/bin/poller"]
 
 # run elixir app

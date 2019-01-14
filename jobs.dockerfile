@@ -20,6 +20,7 @@ RUN mix compile
 # create release
 RUN mix release --name=jobs
 
+ENV REPLACE_OS_VARS=true
 ENTRYPOINT ["_build/prod/rel/jobs/bin/jobs"]
 
 # run elixir app
