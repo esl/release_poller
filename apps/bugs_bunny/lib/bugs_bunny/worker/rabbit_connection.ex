@@ -19,7 +19,11 @@ defmodule BugsBunny.Worker.RabbitConnection do
             config: config()
           }
 
-    defstruct adapter: BugsBunny.RabbitMQ, connection: nil, channels: [], config: nil, monitors: []
+    defstruct adapter: BugsBunny.RabbitMQ,
+              connection: nil,
+              channels: [],
+              config: nil,
+              monitors: []
   end
 
   ##############
@@ -159,11 +163,11 @@ defmodule BugsBunny.Worker.RabbitConnection do
         num_channels = Keyword.get(config, :channels, @default_channels)
 
         channels =
-        for _ <- 1..num_channels do
-          {:ok, channel} = start_channel(adapter, connection)
+          for _ <- 1..num_channels do
+            {:ok, channel} = start_channel(adapter, connection)
 
-          channel
-        end
+            channel
+          end
 
         {:noreply, %State{state | connection: connection, channels: channels}}
     end

@@ -13,10 +13,11 @@ defmodule RepoPoller.SetupQueueWorker do
     queue = Config.get_rabbitmq_queue()
     exchange = Config.get_rabbitmq_exchange()
 
-    :ok = BugsBunny.create_queue_with_bind(client, pool_id, queue, exchange, :direct,
-      queue_options: [durable: true],
-      exchange_options: [durable: true]
-    )
+    :ok =
+      BugsBunny.create_queue_with_bind(client, pool_id, queue, exchange, :direct,
+        queue_options: [durable: true],
+        exchange_options: [durable: true]
+      )
 
     {:ok, :ignore}
   end

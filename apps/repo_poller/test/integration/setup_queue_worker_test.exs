@@ -46,6 +46,7 @@ defmodule RepoPoller.SetupQueueWorkerTest do
 
   test "declare queue on startup", %{pool_id: pool_id} do
     _worker_pid = start_supervised!(SetupQueueWorker)
+
     BugsBunny.with_channel(pool_id, fn {:ok, channel} ->
       assert :ok = AMQP.Basic.publish(channel, "my_exchange", "", "Hello, World!")
       assert {:ok, "Hello, World!", _meta} = AMQP.Basic.get(channel, @queue)
