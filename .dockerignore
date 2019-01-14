@@ -1,6 +1,14 @@
 .git
 *.dockerfile
-README.md
 _build
 deps
-docker-compose*
+.envrc.example
+.gitignore
+.travis.yml
+docker-compose.yml
+apps/**/README.md
+apps/**/test
+apps/**/log
+log
+_build
+docs
