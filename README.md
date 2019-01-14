@@ -140,3 +140,10 @@ iex --name jobs@127.0.0.1 --cookie hola -S mix
 cd apps/repo_poller
 iex --name poller@127.0.0.1 --cookie hola -S mix
 ```
+
+### Using Nix (Totally Optional !)
+
+In the root of project you will find a file called `shell.nix` which
+can be executed using the `nix-shell` command (if available on the
+system). This should create an environment with all the things needed
+to run the project.
