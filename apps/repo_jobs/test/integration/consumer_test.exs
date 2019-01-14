@@ -18,23 +18,6 @@ defmodule RepoJobs.Integration.ConsumerTest do
   @queue "test.consumer.queue"
 
   setup do
-    rabbitmq_config = [
-      port: String.to_integer(System.get_env("POLLER_RMQ_PORT") || "5672")
-    ]
-
-    {:ok, conn} = Connection.open(rabbitmq_config)
-    {:ok, channel} = Channel.open(conn)
-    {:ok, %{queue: queue}} = Queue.declare(channel, @queue)
-
-    on_exit(fn ->
-      {:ok, _} = Queue.delete(channel, queue)
-      :ok = Connection.close(conn)
-    end)
-
-    {:ok, channel: channel}
-  end
-
-  setup do
     n = :rand.uniform(100)
     pool_id = String.to_atom("test_pool#{n}")
 
@@ -55,6 +38,15 @@ defmodule RepoJobs.Integration.ConsumerTest do
       max_overflow: 0
     ]
 
+    {:ok, conn} = Connection.open(rabbitmq_config)
+    {:ok, channel} = Channel.open(conn)
+
+    on_exit(fn ->
+      {:ok, _} = Queue.delete(channel, @queue)
+      :ok = Channel.close(channel)
+      :ok = Connection.close(conn)
+    end)
+
     Application.put_env(:repo_jobs, :rabbitmq_config, rabbitmq_config)
     Application.put_env(:repo_jobs, :database, Domain.Service.MockDatabase)
 
@@ -69,7 +61,7 @@ defmodule RepoJobs.Integration.ConsumerTest do
       type: :supervisor
     })
 
-    {:ok, pool_id: pool_id}
+    {:ok, pool_id: pool_id, channel: channel}
   end
 
   test "handles channel crashes", %{pool_id: pool_id} do

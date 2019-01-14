@@ -28,7 +28,9 @@ defmodule RepoPoller.PollerTest do
       exchange: "",
       adapter: FakeRabbitMQ,
       caller: caller,
-      reconnect: 10
+      reconnect: 10,
+      queue_options: [auto_delete: true],
+      exchange_options: [auto_delete: true]
     ]
 
     rabbitmq_conn_pool = [

@@ -1,7 +1,7 @@
 defmodule RepoPoller.SetupSupervisor do
   use Supervisor
 
-  alias RepoPoller.{PollerSupervisor, SetupWorker, SetupQueueWorker, Config}
+  alias RepoPoller.{PollerSupervisor, SetupWorker}
 
   def start_link(args \\ []) do
     name = Keyword.get(args, :name, __MODULE__)
@@ -13,12 +13,6 @@ defmodule RepoPoller.SetupSupervisor do
       {PollerSupervisor, []},
       {SetupWorker, []}
     ]
-
-    children =
-      case Config.get_rabbitmq_config() do
-        [] -> children
-        _ -> [{SetupQueueWorker, []} | children]
-      end
 
     opts = [strategy: :rest_for_one]
     Supervisor.init(children, opts)

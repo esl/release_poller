@@ -1,6 +1,8 @@
 defmodule BugsBunny.PoolSupervisor do
   use Supervisor
 
+  alias BugsBunny.Worker.SetupQueue
+
   @type config :: [rabbitmq_config: keyword(), rabbitmq_conn_pool: keyword()]
 
   @spec start_link(config()) :: Supervisor.on_start()
@@ -24,10 +26,14 @@ defmodule BugsBunny.PoolSupervisor do
           rabbitmq_config = Keyword.get(config, :rabbitmq_config, [])
           pool_id = Keyword.fetch!(rabbitmq_conn_pool, :pool_id)
 
-          [:poolboy.child_spec(pool_id, rabbitmq_conn_pool, rabbitmq_config)]
+          [
+            :poolboy.child_spec(pool_id, rabbitmq_conn_pool, rabbitmq_config),
+            {SetupQueue, {pool_id, rabbitmq_config}}
+          ]
       end
 
-    opts = [strategy: :one_for_one]
+    # if the pool of rabbit connection crashes, try to setup the queues again
+    opts = [strategy: :rest_for_one]
     Supervisor.init(children, opts)
   end
 end
