@@ -1,5 +1,5 @@
 defmodule Domain.Tasks.Sources.GithubTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureIO
 

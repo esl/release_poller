@@ -1,5 +1,5 @@
 defmodule Domain.Helpers.MapTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Helpers.Map, as: HelperMap
 

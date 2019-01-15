@@ -1,5 +1,5 @@
 defmodule Domain.Jobs.NewReleaseJob.Test do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Jobs.NewReleaseJob
   alias Domain.Repos.Repo

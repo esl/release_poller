@@ -1,5 +1,5 @@
 defmodule Domain.Tasks.Helpers.TempStoreTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Tasks.Helpers.TempStore
 

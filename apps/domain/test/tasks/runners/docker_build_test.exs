@@ -1,5 +1,5 @@
 defmodule Domain.Tasks.Runners.DockerBuildTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import Mimic
 
   alias Domain.Tasks.Runners.DockerBuild

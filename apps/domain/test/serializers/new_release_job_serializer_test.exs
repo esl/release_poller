@@ -1,5 +1,5 @@
 defmodule Domain.Serializers.NewReleaseJobSerializer.Test do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Serializers.NewReleaseJobSerializer, as: JobSerializer
   alias Domain.Jobs.NewReleaseJob
