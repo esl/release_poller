@@ -26,7 +26,7 @@ defmodule BugsBunny.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:amqp, "~> 1.0"},
+      {:amqp, "~> 1.1"},
       # amqp and tentacat depends on jsx
       {:jsx, "2.8.2", override: true},
       # https://github.com/pma/amqp/issues/99
