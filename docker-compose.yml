@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.7'
 
 services:
   rabbitmq:
@@ -8,6 +8,7 @@ services:
       - 15672:15672
     # https://stackoverflow.com/questions/31746182/docker-compose-wait-for-container-x-before-starting-y
     healthcheck:
+      start_period: 60s
       test: ["CMD", "curl", "-f", "http://rabbitmq:15672"]
       interval: 30s
       timeout: 10s
@@ -27,6 +28,7 @@ services:
       - rabbitmq
     links:
       - rabbitmq
+    restart: on-failure
 
   jobs:
     build:
@@ -40,3 +42,6 @@ services:
       - rabbitmq
     links:
       - rabbitmq
+    restart: on-failure
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
