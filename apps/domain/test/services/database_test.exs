@@ -1,5 +1,5 @@
 defmodule Domain.Services.DatabaseTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   import Mox
 
   alias Domain.Services.Database

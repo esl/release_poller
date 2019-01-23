@@ -136,6 +136,7 @@ defmodule RepoJobs.Consumer do
             Logger.info("successfully ran job #{job_name}")
             if caller, do: send(caller, {:ack, task_results})
           end
+
           {:noreply, state}
 
         {:error, error} ->

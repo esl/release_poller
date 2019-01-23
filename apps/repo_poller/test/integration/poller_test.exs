@@ -1,5 +1,5 @@
 defmodule RepoPoller.Integration.PollerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import Mox
 
   alias AMQP.Basic

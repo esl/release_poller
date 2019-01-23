@@ -1,5 +1,5 @@
 defmodule BugsBunny.Integration.SetupQueueTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   @moduletag :integration
   @queue "test.queue"

@@ -1,5 +1,5 @@
 defmodule RepoPoller.Api.ServiceTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import Mock
 
   alias RepoPoller.Repository.{Service, Github, GithubFake}

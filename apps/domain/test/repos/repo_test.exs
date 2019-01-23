@@ -1,5 +1,5 @@
 defmodule Domain.Repos.RepoTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Repos.Repo
   alias Domain.Tags.Tag

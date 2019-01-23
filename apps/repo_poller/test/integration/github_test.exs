@@ -1,5 +1,5 @@
 defmodule RepoPoller.Integration.GithubTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias RepoPoller.Repository.Github
   alias Domain.Repos.Repo

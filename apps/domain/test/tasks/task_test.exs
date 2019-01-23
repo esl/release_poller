@@ -1,5 +1,5 @@
 defmodule Domain.Tasks.TaskTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Tasks.Task
   alias Domain.Tasks.Runners.Make

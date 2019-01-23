@@ -1,5 +1,5 @@
 defmodule RepoPoller.Api.GithubTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import Mock
 
   alias RepoPoller.Repository.Github

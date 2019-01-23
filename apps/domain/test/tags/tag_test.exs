@@ -1,5 +1,5 @@
 defmodule Domain.Tags.TagTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Domain.Tags.Tag
 
