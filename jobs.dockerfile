@@ -2,13 +2,12 @@
 FROM bitwalker/alpine-elixir:1.7.4
 
 # install docker client
-RUN apk --update add curl \
-    && mkdir -p /tmp/download \
-    && curl -L "https://download.docker.com/linux/static/stable/x86_64/docker-18.09.1.tgz" | tar -xz -C /tmp/download \
-    && mv /tmp/download/docker/docker /usr/local/bin/ \
-    && rm -rf /tmp/download \
-    && apk del curl \
-    && rm -rf /var/cache/apk/*
+RUN grep "http://dl-cdn.alpinelinux.org/alpine/v3.8/community/" /etc/apk/repositories \
+        || echo "http://dl-cdn.alpinelinux.org/alpine/v3.8/community/" >> /etc/apk/repositories
+
+RUN apk update
+
+RUN apk add docker
 
 VOLUME /var/lib/docker
 
