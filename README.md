@@ -1,6 +1,6 @@
 # ReleasePoller
 
-[![Build Status](https://travis-ci.org/sescobb27/release_poller.svg?branch=master)](https://travis-ci.org/sescobb27/release_poller)
+[![Build Status](https://travis-ci.org/esl/release_poller.svg?branch=master)](https://travis-ci.org/esl/release_poller)
 
 Poll Github (for now) looking for new tags and releases of given repositories,
 if there is a new one, put a job into a RabbitMQ queue to be processed later.
