@@ -1,0 +1,14 @@
+.git
+*.dockerfile
+_build
+deps
+.envrc.example
+.gitignore
+.travis.yml
+docker-compose.yml
+apps/**/README.md
+apps/**/test
+apps/**/log
+log
+_build
+docs

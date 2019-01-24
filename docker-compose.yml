@@ -1,0 +1,47 @@
+version: '3.7'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.7.7-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    # https://stackoverflow.com/questions/31746182/docker-compose-wait-for-container-x-before-starting-y
+    healthcheck:
+      start_period: 60s
+      test: ["CMD", "curl", "-f", "http://rabbitmq:15672"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  poller:
+    build:
+      context: .
+      dockerfile: poller.dockerfile
+    environment:
+      QUEUE_NAME: ${QUEUE_NAME}
+      GITHUB_AUTH: ${GITHUB_AUTH}
+      POLLER_NODES: ${POLLER_NODES}
+      RABBIT_HOST: ${RABBIT_HOST}
+      NODE_COOKIE: ${NODE_COOKIE}
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    restart: on-failure
+
+  jobs:
+    build:
+      context: .
+      dockerfile: jobs.dockerfile
+    environment:
+      QUEUE_NAME: ${QUEUE_NAME}
+      RABBIT_HOST: ${RABBIT_HOST}
+      NODE_COOKIE: ${NODE_COOKIE}
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    restart: on-failure
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
