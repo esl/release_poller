@@ -9,6 +9,7 @@ The Release Poller project have been split into multiple repositories under the 
 - [Release Poller now called Buildex Poller](https://github.com/esl/buildex_poller)
 - [Release Jobs now called Buildex Jobs](https://github.com/esl/buildex_jobs)
 - [Release Domain now called Buildex Common](https://github.com/esl/buildex_common)
+- [RabbitMQ Pool](https://github.com/esl/ex_rabbit_pool)
 - [Buildex API](https://github.com/esl/buildex_api)
 
 Poll Github (for now) looking for new tags and releases of given repositories,
