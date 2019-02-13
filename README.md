@@ -2,6 +2,15 @@
 
 [![Build Status](https://travis-ci.org/esl/release_poller.svg?branch=master)](https://travis-ci.org/esl/release_poller)
 
+## Project Split
+
+The Release Poller project have been split into multiple repositories under the name of `Buildex`
+
+- [Release Poller now called Buildex Poller](https://github.com/esl/buildex_poller)
+- [Release Jobs now called Buildex Jobs](https://github.com/esl/buildex_jobs)
+- [Release Domain now called Buildex Common](https://github.com/esl/buildex_common)
+- [Buildex API](https://github.com/esl/buildex_api)
+
 Poll Github (for now) looking for new tags and releases of given repositories,
 if there is a new one, put a job into a RabbitMQ queue to be processed later.
 Then from another app (the RabbitMQ consumer), consume new jobs in the queue
