@@ -26,7 +26,7 @@ defmodule RepoPoller.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:tentacat, "~> 1.1.0"},
+      {:tentacat, "~> 1.6.1"},
       # use master because there aren't newer releases and master has an API function we need
       {:mock, "~> 0.3.2", only: :test},
       {:bugs_bunny, in_umbrella: true},
