@@ -32,7 +32,7 @@ defmodule RepoPoller.MixProject do
       {:bugs_bunny, in_umbrella: true},
       {:domain, in_umbrella: true},
       {:poison, "~> 4.0"},
-      {:httpoison, "~> 1.3.0", override: true},
+      {:httpoison, "~> 1.5.1", override: true},
       {:meck, "0.8.13", override: true, only: :test},
       {:mox, "~> 0.4", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},
