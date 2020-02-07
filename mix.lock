@@ -21,7 +21,7 @@
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm"},
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], [], "hexpm"},
   "mimic": {:hex, :mimic, "0.2.0", "66601fa5ce58db59e88fa0bef9d35d8169f11afcc3c8f0c77f911093f4469785", [:mix], [], "hexpm"},
-  "mock": {:hex, :mock, "0.3.2", "e98e998fd76c191c7e1a9557c8617912c53df3d4a6132f561eb762b699ef59fa", [:mix], [{:meck, "~> 0.8.8", [hex: :meck, repo: "hexpm", optional: false]}], "hexpm"},
+  "mock": {:hex, :mock, "0.3.4", "c5862eb3b8c64237f45f586cf00c9d892ba07bb48305a43319d428ce3c2897dd", [:mix], [{:meck, "~> 0.8.13", [hex: :meck, repo: "hexpm", optional: false]}], "hexpm"},
   "mox": {:hex, :mox, "0.4.0", "7f120840f7d626184a3d65de36189ca6f37d432e5d63acd80045198e4c5f7e6e", [:mix], [], "hexpm"},
   "parse_trans": {:hex, :parse_trans, "3.2.0", "2adfa4daf80c14dc36f522cf190eb5c4ee3e28008fc6394397c16f62a26258c2", [:rebar3], [], "hexpm"},
   "persistent_ets": {:git, "https://github.com/michalmuskala/persistent_ets.git", "72c4184caed5e1e26cdd57ab10583aca1e20ef31", []},
