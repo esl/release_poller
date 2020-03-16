@@ -29,7 +29,7 @@ defmodule ReleasePoller.MixProject do
       {:lager, "3.6.5", override: true},
       {:jsx, "2.8.2", override: true},
       {:dialyxir, "~> 1.0.0-rc.3", only: [:dev], runtime: false},
-      {:credo, "~> 0.10.0", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.3.1", only: [:dev, :test], runtime: false},
       {:distillery, "~> 2.0"}
     ]
   end
