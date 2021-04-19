@@ -28,7 +28,7 @@ defmodule BugsBunny.MixProject do
     [
       {:amqp, "~> 1.1"},
       # amqp and tentacat depends on jsx
-      {:jsx, "2.8.2", override: true},
+      {:jsx, "3.1.0", override: true},
       # https://github.com/pma/amqp/issues/99
       {:ranch, "1.5.0", override: true},
       # https://github.com/pma/amqp/issues/99
